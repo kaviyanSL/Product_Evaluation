@@ -1,0 +1,46 @@
+version: "3.8"  # Docker Compose version
+
+services:
+  flask_app:
+    build: .
+    container_name: Production_Evaluation
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mysql_db
+      - mlflow
+    environment:
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_HOST: mysql_db
+      MYSQL_DATABASE: product_db
+      MLFLOW_TRACKING_URI: http://mlflow:5001
+    volumes:
+      - .:/app
+    command: gunicorn -w 4 -b 0.0.0.0:5000 "app:create_app()"
+
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: product_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.2
+    container_name: mlflow
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./mlflow_data:/mlflow
+    environment:
+      MLFLOW_TRACKING_URI: http://0.0.0.0:5001
+      ARTIFACT_ROOT: /mlflow
+
+volumes:
+  mysql_data:
+  mlflow_data:
