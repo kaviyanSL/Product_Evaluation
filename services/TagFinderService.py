@@ -75,19 +75,12 @@ class TagFinderService:
         comments = []
 
         # === Extract Amazon Reviews ===
-        review_divs = soup.find_all('div', {'data-hook': 'review'})
+        review_divs = soup.find_all('div', {'data-hook': 'review-collapsed'})
         for review in review_divs:
             try:
-                title = review.find('a', {'data-hook': 'review-title'}).get_text(strip=True)
-                rating = review.find('i', {'data-hook': 'review-star-rating'}).get_text(strip=True)
-                review_text = review.find('span', {'data-hook': 'review-body'}).get_text(strip=True)
-                comments.append({
-                    'title': title,
-                    'rating': rating,
-                    'review': review_text
-                })
-            except AttributeError:
-                continue
+                comments.append(review.get_text(strip=True))
+            except Exception as e:
+                print(f"Error in finding Amazon-specific tags {self.URL}: {e}")
 
         # === Generic Comment Extraction ===
         comment_pattern = re.compile(r'comment', re.IGNORECASE)
