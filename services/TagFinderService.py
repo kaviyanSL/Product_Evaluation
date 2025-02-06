@@ -9,19 +9,23 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
 class TagFinderService:
-    def __init__(self, URL, use_selenium=False):
+    def __init__(self, URL, use_selenium=False, driver_path="chromedriver.exe"):
+        """
+        Initialize the scraper.
+        :param URL: The webpage URL to scrape.
+        :param use_selenium: If True, uses Selenium; otherwise, uses Requests + BeautifulSoup.
+        :param driver_path: Path to the Chromedriver binary.
+        """
         self.URL = URL
         self.use_selenium = use_selenium
+        self.driver_path = driver_path
 
     def read_html_component(self):
-
+        """
+        Fetches HTML content using either Requests (for static sites) or Selenium (for JavaScript-heavy sites).
+        """
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
         }
 
         # === Option 1: Use Requests (For Static HTML) ===
@@ -43,7 +47,7 @@ class TagFinderService:
             options.add_argument("--window-size=1920x1080")
             options.add_argument("--log-level=3")  # Reduce Selenium logs
             
-            service = Service("chromedriver.exe")  # Ensure chromedriver is in your path
+            service = Service(self.driver_path)  # Ensure chromedriver is correctly set
             driver = webdriver.Chrome(service=service, options=options)
             
             try:
@@ -58,13 +62,17 @@ class TagFinderService:
             return None
 
     def find_reviews(self):
+        """
+        Extracts reviews and comments from the webpage.
+        Works with both static and dynamic Amazon pages.
+        """
         html = self.read_html_component()
         if not html:
             print("No HTML content found.")
             return None
 
         soup = BeautifulSoup(html, 'html.parser')
-        reviews = []
+        comments = []
 
         # === Extract Amazon Reviews ===
         review_divs = soup.find_all('div', {'data-hook': 'review'})
@@ -73,7 +81,7 @@ class TagFinderService:
                 title = review.find('a', {'data-hook': 'review-title'}).get_text(strip=True)
                 rating = review.find('i', {'data-hook': 'review-star-rating'}).get_text(strip=True)
                 review_text = review.find('span', {'data-hook': 'review-body'}).get_text(strip=True)
-                reviews.append({
+                comments.append({
                     'title': title,
                     'rating': rating,
                     'review': review_text
@@ -81,5 +89,19 @@ class TagFinderService:
             except AttributeError:
                 continue
 
-        return reviews if reviews else None
+        # === Generic Comment Extraction ===
+        comment_pattern = re.compile(r'comment', re.IGNORECASE)
+        try:
+            comment_section = soup.find_all(
+                lambda tag: tag.name in ['div', 'section', 'ul', 'ol', 'article'] and 
+                (comment_pattern.search(' '.join(tag.get('class', []))) or 
+                 comment_pattern.search(tag.get('id', '')))
+            )
 
+            for section in comment_section:
+                comments.extend([c.get_text(strip=True) for c in section.find_all(['p', 'li'])])
+
+        except Exception as e:
+            print(f"Error extracting general comments: {e}")
+
+        return comments if comments else None
