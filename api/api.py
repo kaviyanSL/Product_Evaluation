@@ -6,5 +6,5 @@ blueprint = Blueprint('product_eval',__name__)
 def target_product_url():
     URL_data = request.get_json()
     tag_finder = TagFinderService(URL_data['url'])
-    result = tag_finder.readig_html_component()
-    return jsonify({"message": "URL received", "URL": result})
+    result = tag_finder.find_tag()
+    return jsonify({"message": "URL result", "results": result})
