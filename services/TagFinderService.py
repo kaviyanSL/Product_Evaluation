@@ -32,7 +32,21 @@ class TagFinderService ():
                 comments = []
                 for section in comment_section:
                     comments.extend([c.get_text(strip=True) for c in section.find_all(['p', 'li'])])
-                return comments if comments else None
+                
+                # Additional logic to handle Amazon-specific comment tags
+                try:
+                    for review in soup.find_all('div', {'data-hook': 'review'}):  
+                        title = review.find('a', {'data-hook': 'review-title'}).text.strip()  
+                        rating = review.find('i', {'data-hook': 'review-star-rating'}).text.strip()  
+                        review_text = review.find('span', {'data-hook': 'review-body'}).text.strip()  
+                        comments.append({'title': title, 'rating': rating, 'review': review_text})  
+
+                    return comments if comments else None
+                
+                except Exception as e:
+                    print(f"Error in finding Amazon-specific tags {self.URL}: {e}")
+                    return comments if comments else None
+                
         except Exception as e:
             print(f"Error in finding tags {self.URL}: {e}")
         return None
