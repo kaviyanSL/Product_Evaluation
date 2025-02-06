@@ -10,20 +10,13 @@ from selenium.webdriver.chrome.options import Options
 
 class TagFinderService:
     def __init__(self, URL, use_selenium=False, driver_path="chromedriver.exe"):
-        """
-        Initialize the scraper.
-        :param URL: The webpage URL to scrape.
-        :param use_selenium: If True, uses Selenium; otherwise, uses Requests + BeautifulSoup.
-        :param driver_path: Path to the Chromedriver binary.
-        """
+
         self.URL = URL
         self.use_selenium = use_selenium
         self.driver_path = driver_path
 
     def read_html_component(self):
-        """
-        Fetches HTML content using either Requests (for static sites) or Selenium (for JavaScript-heavy sites).
-        """
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
         }
@@ -62,10 +55,7 @@ class TagFinderService:
             return None
 
     def find_reviews(self):
-        """
-        Extracts reviews and comments from the webpage.
-        Works with both static and dynamic Amazon pages.
-        """
+
         html = self.read_html_component()
         if not html:
             print("No HTML content found.")
