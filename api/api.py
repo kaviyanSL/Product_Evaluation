@@ -3,9 +3,11 @@ from services.TagFinderService import TagFinderService
 from services.TextPreProcessorService import TextPreProcessorService
 from services.NLPBasedModelsService import NLPBasedModelsService
 from services.ClusteringService import ClusteringService
+from database.SavingClusteredCommentRepository import SavingClusteredCommentRepository
+import pandas as pd
 blueprint = Blueprint('product_eval',__name__)
 
-@blueprint.route("/api/product_url/", methods = ['POST'])
+@blueprint.route("/api/v1/saving_clustered_comment/", methods = ['POST'])
 def scrape_reviews():
     try:
         data = request.get_json()
@@ -23,7 +25,11 @@ def scrape_reviews():
         vectorize_review = vectorizer.vectorize_reviews()
         clustering = ClusteringService(reviews, vectorize_review)
         cluster_data = clustering.get_clustered_reviews()
-
+        db = SavingClusteredCommentRepository()
+        for i in cluster_data.keys():
+            if len(cluster_data[i]) > 0:
+                for j in cluster_data[i]:
+                    db.save_clustered_comments(j,i)
         if not reviews:
             return jsonify({"message": "No reviews found"}), 404
 
