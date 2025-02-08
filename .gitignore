@@ -136,6 +136,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Ignore NLTK data directory
+nltk_data/
+
 # Spyder project settings
 .spyderproject
 .spyproject

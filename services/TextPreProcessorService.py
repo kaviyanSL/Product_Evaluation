@@ -1,6 +1,10 @@
 from nltk.corpus import stopwords
 import re
 from nltk.stem import WordNetLemmatizer
+import nltk
+import os
+nltk_data_path = os.path.join(os.path.dirname(__file__), '..', 'nltk_data')
+nltk.data.path.append(nltk_data_path)
 
 class TextPreProcessorService():
     def __init__(self,comment_list):
@@ -24,8 +28,8 @@ class TextPreProcessorService():
     def remove_stopwords(self):
         try:
             removed_punctuation = self.remove_punctuation()
-            stopwords = set(stopwords.words('english'))
-            removed_stopwords = [' '.join([word for word in comment.split() if word not in stopwords])
+            stop_words = set(stopwords.words('english'))
+            removed_stopwords = [' '.join([word for word in comment.split() if word not in stop_words])
                                   for comment in removed_punctuation]
             return removed_stopwords
         except Exception as e:
