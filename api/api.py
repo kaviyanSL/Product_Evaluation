@@ -41,6 +41,7 @@ def saving_pre_processed_comment():
         
         db = RawCommentRepository()
         text = db.get_all_raw_comments()
+        text = [comment[0]for comment in text]
         pre_processed_text = TextPreProcessorService(text)
         reviews = pre_processed_text.lemmatize()
         db = PreProcessCommentsrepository()
@@ -62,6 +63,7 @@ def saving_clustered_comment():
     try:
         db = PreProcessCommentsrepository()
         reviews = db.get_all_pre_processed_comments()
+        reviews = [comment[0]for comment in reviews]
         vectorizer = NLPBasedModelsService(reviews)
         vectorize_review = vectorizer.vectorize_reviews()
         clustering = ClusteringService(reviews, vectorize_review)
