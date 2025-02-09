@@ -21,4 +21,13 @@ class ClusteringService():
             if cluster not in clustered_reviews:
                 clustered_reviews[cluster] = []
             clustered_reviews[cluster].append(self.reviews[i])
-        return clustered_reviews
+
+        vectorized_reviews = {}    
+        for i, cluster in enumerate(clusters):
+            cluster = int(cluster)
+            if cluster not in vectorized_reviews:
+                vectorized_reviews[cluster] = []
+            vectorized_reviews[cluster].append(self.vectorize_reviews [i])
+        
+        
+        return clustered_reviews, vectorized_reviews

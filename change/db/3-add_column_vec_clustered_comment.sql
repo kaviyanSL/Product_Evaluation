@@ -1,0 +1,1 @@
+ALTER TABLE clustered_comment ADD vectorize_comment Text;

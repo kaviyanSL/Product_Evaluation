@@ -24,12 +24,12 @@ def scrape_reviews():
         vectorizer = NLPBasedModelsService(reviews)
         vectorize_review = vectorizer.vectorize_reviews()
         clustering = ClusteringService(reviews, vectorize_review)
-        cluster_data = clustering.get_clustered_reviews()
+        cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
         db = SavingClusteredCommentRepository()
-        for i in cluster_data.keys():
-            if len(cluster_data[i]) > 0:
-                for j in cluster_data[i]:
-                    db.save_clustered_comments(j,i)
+        for cluster in cluster_data.keys():
+            if len(cluster_data[cluster]) > 0:
+                for comment,vec_comment in zip(cluster_data[cluster],vectorized_reviews[cluster]):
+                    db.save_clustered_comments(comment,cluster,vec_comment)
         if not reviews:
             return jsonify({"message": "No reviews found"}), 404
 
