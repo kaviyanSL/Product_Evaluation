@@ -6,6 +6,7 @@ from services.ClusteringService import ClusteringService
 from database.ClusteredCommentRepository import ClusteredCommentRepository
 from database.RawCommentRepository import RawCommentRepository
 from database.PreProcessCommentsrepository import PreProcessCommentsrepository
+from services.LanguageDetectionService import LanguageDetectionService
 import pandas as pd
 blueprint = Blueprint('product_eval',__name__)
 
@@ -23,8 +24,10 @@ def scrape_reviews():
         scraper = TagFinderService(url, playwright)
         text = scraper.find_reviews()
         db = RawCommentRepository()
+        lang_detect = LanguageDetectionService()
         for raw in text:
-            db.saving_raw_comments(raw)
+            lang = lang_detect.detect_language(raw)
+            db.saving_raw_comments(raw,lang)
         
         if not text:
             return jsonify({"message": "No reviews found"}), 404

@@ -7,10 +7,10 @@ class RawCommentRepository:
         self.metadata = MetaData()
 
 
-    def saving_raw_comments(self, comments):
+    def saving_raw_comments(self, comments,lang):
         raw_comments = Table('raw_comments', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
-            stmt = sa.insert(raw_comments).values(comment=comments)
+            stmt = sa.insert(raw_comments).values(comment=comments,language=lang)
             conn.execute(stmt)
             conn.commit()
     

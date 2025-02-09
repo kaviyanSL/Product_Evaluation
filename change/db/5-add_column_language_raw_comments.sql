@@ -1,0 +1,1 @@
+ALTER TABLE raw_comments ADD language varchar(20);
