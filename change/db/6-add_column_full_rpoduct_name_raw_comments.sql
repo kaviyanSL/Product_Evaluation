@@ -1,0 +1,1 @@
+ALTER TABLE raw_comments ADD product_full_name text;

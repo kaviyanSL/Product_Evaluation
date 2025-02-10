@@ -139,6 +139,9 @@ venv.bak/
 # Ignore NLTK data directory
 nltk_data/
 
+# datasets
+dataset_1.5m/
+dataset_30m/
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -173,3 +176,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 review_dataset_cleaning.ipynb
+review_dataset_cleaning_dataset_1.5m.ipynb
+review_dataset_cleaning_dataset_30m.ipynb
