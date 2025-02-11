@@ -1,20 +1,19 @@
-
 CREATE TABLE raw_comments_amazon_meta (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    main_category VARCHAR(255),
-    title VARCHAR(255),
+    main_category text,
+    title text,
     average_rating FLOAT,
     rating_number INT,
-    features TEXT,
-    description TEXT,
+    features JSON,
+    description JSON,
     price FLOAT,
-    images TEXT,
-    videos TEXT,
-    store VARCHAR(255),
-    categories TEXT,
-    details TEXT,
-    parent_asin VARCHAR(255),
+    images JSON,
+    videos JSON,
+    store text,
+    categories JSON,
+    details JSON,
+    parent_asin text,
     bought_together FLOAT,
-    subtitle VARCHAR(255),
-    author VARCHAR(255)
+    subtitle text,
+    author text
 );
