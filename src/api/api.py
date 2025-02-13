@@ -7,6 +7,7 @@ from src.database.ClusteredCommentRepository import ClusteredCommentRepository
 from src.database.RawCommentRepository import RawCommentRepository
 from src.database.PreProcessCommentsrepository import PreProcessCommentsrepository
 from src.services.LanguageDetectionService import LanguageDetectionService
+from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPreprocessText
 import pandas as pd
 blueprint = Blueprint('product_eval',__name__)
 
@@ -80,6 +81,16 @@ def saving_clustered_comment():
             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
         return jsonify({"clustered_reviews": cluster_data}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@blueprint.route("/api/v1/language_update_multiprocessor/", methods = ['POST'])
+def language_update_multiprocessor():
+    try:
+        multi_lang = MultiprocessPreprocessText()
+        multi_lang.multiprocess_language_detection()
+        return jsonify({"updating language is done"}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
