@@ -19,11 +19,11 @@ class MultiprocessPreprocessText:
     def __init__(self):
         self.Batching = Batching()
 
-    def update_language(self, comment_id, language):
-        if pd.isna(language):
-            logging.warning(f"Detected language is NaN for comment ID {comment_id}. Skipping update.")
+    def update_language(self, updates):
+        if not updates:
             return
-        RawCommentRepository().updating_language(comment_id, language)
+        raw_comment_repo = RawCommentRepository()
+        raw_comment_repo.bulk_update_language(updates)
 
     def multiprocess_language_detection(self):
         all_data, number_of_record_per_patch = self.Batching.Batchsize()
@@ -33,9 +33,11 @@ class MultiprocessPreprocessText:
             batchsized_data = self.Batching.call_batchsized_data(batch_size, batch_size + number_of_record_per_patch)
             batchsized_data = pd.DataFrame(batchsized_data)
             with Pool(processes=os.cpu_count() - 4) as p:
-                languages = p.map(detect_language, batchsized_data['comment'])
+                languages = p.map(detect_language, batchsized_data['text'])
+                updates = []
                 for idx, language in enumerate(languages):
-                    self.update_language(batchsized_data.iloc[idx]['id'], language)
-                    logging.debug(f"Updated language for comment ID {batchsized_data.iloc[idx]['id']} to {language}")
-
+                    if not pd.isna(language):
+                        updates.append((batchsized_data.iloc[idx]['id'], language))
+                        logging.debug(f"Prepared update for comment ID {batchsized_data.iloc[idx]['id']} to {language}")
+                self.update_language(updates)
             batch_size += number_of_record_per_patch

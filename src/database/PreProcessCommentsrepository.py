@@ -13,9 +13,10 @@ class PreProcessCommentsrepository:
     def saving_pre_processed_comments(self, comments):
         pre_process_comments = Table('pre_process_comments', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
-            stmt = sa.insert(pre_process_comments).values(comment=comments)
-            conn.execute(stmt)
-            conn.commit()
+            with conn.begin():
+                stmt = sa.insert(pre_process_comments).values(comment=comments)
+                conn.execute(stmt)
+  
     
     def get_all_pre_processed_comments(self):
         pre_process_comments = Table('pre_process_comments', self.metadata, autoload_with=self.engine)
