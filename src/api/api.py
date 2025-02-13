@@ -9,10 +9,10 @@ from src.database.PreProcessCommentsrepository import PreProcessCommentsreposito
 from src.services.LanguageDetectionService import LanguageDetectionService
 from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPreprocessText
 import pandas as pd
-blueprint = Blueprint('product_eval',__name__)
 
+blueprint = Blueprint('product_eval', __name__)
 
-@blueprint.route("/api/v1/saving_raw_comment/", methods = ['POST'])
+@blueprint.route("/api/v1/saving_raw_comment/", methods=['POST'])
 def scrape_reviews():
     try:
         data = request.get_json()
@@ -28,8 +28,8 @@ def scrape_reviews():
         lang_detect = LanguageDetectionService()
         for raw in text:
             lang = lang_detect.detect_language(raw)
-            db.saving_raw_comments(raw,lang)
-        
+            db.saving_raw_comments(raw, lang)
+
         if not text:
             return jsonify({"message": "No reviews found"}), 404
 
@@ -37,15 +37,13 @@ def scrape_reviews():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
 
-@blueprint.route("/api/v1/saving_pre_processed_comment/", methods = ['POST'])
+@blueprint.route("/api/v1/saving_pre_processed_comment/", methods=['POST'])
 def saving_pre_processed_comment():
     try:
-        
         db = RawCommentRepository()
         text = db.get_all_raw_comments()
-        text = [comment[0]for comment in text]
+        text = [comment[0] for comment in text]
         pre_processed_text = TextPreProcessorService(text)
         reviews = pre_processed_text.lemmatize()
         db = PreProcessCommentsrepository()
@@ -59,15 +57,13 @@ def saving_pre_processed_comment():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
 
-
-@blueprint.route("/api/v1/saving_clustered_comment/", methods = ['POST'])
+@blueprint.route("/api/v1/saving_clustered_comment/", methods=['POST'])
 def saving_clustered_comment():
     try:
         db = PreProcessCommentsrepository()
         reviews = db.get_all_pre_processed_comments()
-        reviews = [comment[0]for comment in reviews]
+        reviews = [comment[0] for comment in reviews]
         vectorizer = NLPBasedModelsService(reviews)
         vectorize_review = vectorizer.vectorize_reviews()
         clustering = ClusteringService(reviews, vectorize_review)
@@ -75,8 +71,8 @@ def saving_clustered_comment():
         db = ClusteredCommentRepository()
         for cluster in cluster_data.keys():
             if len(cluster_data[cluster]) > 0:
-                for comment,vec_comment in zip(cluster_data[cluster],vectorized_reviews[cluster]):
-                    db.save_clustered_comments(comment,cluster,vec_comment)
+                for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
+                    db.save_clustered_comments(comment, cluster, vec_comment)
         if not reviews:
             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
@@ -84,8 +80,8 @@ def saving_clustered_comment():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-@blueprint.route("/api/v1/language_update_multiprocessor/", methods = ['POST'])
+
+@blueprint.route("/api/v1/language_update_multiprocessor/", methods=['POST'])
 def language_update_multiprocessor():
     try:
         multi_lang = MultiprocessPreprocessText()
