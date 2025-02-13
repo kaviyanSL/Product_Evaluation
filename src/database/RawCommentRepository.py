@@ -2,6 +2,8 @@ import sqlalchemy as sa
 from sqlalchemy import create_engine, Table, MetaData
 from src.database.db_connection import DBConnection
 import logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 
 class RawCommentRepository:
