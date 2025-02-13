@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
-from services.TagFinderService import TagFinderService
-from services.TextPreProcessorService import TextPreProcessorService
-from services.NLPBasedModelsService import NLPBasedModelsService
-from services.ClusteringService import ClusteringService
-from database.ClusteredCommentRepository import ClusteredCommentRepository
-from database.RawCommentRepository import RawCommentRepository
-from database.PreProcessCommentsrepository import PreProcessCommentsrepository
-from services.LanguageDetectionService import LanguageDetectionService
+from src.services.TagFinderService import TagFinderService
+from src.services.TextPreProcessorService import TextPreProcessorService
+from src.services.NLPBasedModelsService import NLPBasedModelsService
+from src.services.ClusteringService import ClusteringService
+from src.database.ClusteredCommentRepository import ClusteredCommentRepository
+from src.database.RawCommentRepository import RawCommentRepository
+from src.database.PreProcessCommentsrepository import PreProcessCommentsrepository
+from src.services.LanguageDetectionService import LanguageDetectionService
 import pandas as pd
 blueprint = Blueprint('product_eval',__name__)
 
