@@ -2,6 +2,8 @@ import logging
 from src.services.LanguageDetectionService import LanguageDetectionService
 from src.multiprocess_service.Batching import Batching
 from src.database.RawCommentRepository import RawCommentRepository
+from src.services.TextPreProcessorService import TextPreProcessorService
+from src.database.PreProcessCommentsrepository import PreProcessCommentsrepository
 from multiprocessing import Pool
 import pandas as pd
 import os
@@ -25,6 +27,12 @@ class MultiprocessPreprocessText:
         raw_comment_repo = RawCommentRepository()
         raw_comment_repo.bulk_update_language(updates)
 
+    def update_lemmatize(self,lemmatize_comment_list):
+        if not lemmatize_comment_list:
+            return
+        lemmatize_comment = PreProcessCommentsrepository()
+        lemmatize_comment.bulk_update_lemmatize(lemmatize_comment_list)
+
     def multiprocess_language_detection(self):
         all_data, number_of_record_per_patch = self.Batching.Batchsize()
         batch_size = 0
@@ -41,3 +49,31 @@ class MultiprocessPreprocessText:
                         logging.debug(f"Prepared update for comment ID {batchsized_data.iloc[idx]['id']} to {language}")
                 self.update_language(updates)
             batch_size += number_of_record_per_patch
+
+
+    def mutlti_processing_tex_lemmatize(self, comment_list):
+        tex_pre_processor = TextPreProcessorService(comment_list)
+        logging.debug(f"starting the mutlti_processing_tex_lemmatize")
+
+        # Calculate batch size
+        total_comments = len(comment_list)
+        num_cores = os.cpu_count() - 4
+        batch_size = total_comments // num_cores
+
+        for start in range(0, total_comments, batch_size):
+            end = min(start + batch_size, total_comments)
+            batch = comment_list[start:end]
+            logging.debug(f"batch {len(batch)}")
+
+            with Pool(processes=num_cores) as p:
+                lemmatized_comments = p.map(tex_pre_processor.preprocess, batch)
+                lemmatize_comment_list = []
+                logging.debug(f"going for enumerate reviews")
+                for idx, lemmatized_comment in enumerate(lemmatized_comments):
+                    if not pd.isna(lemmatized_comment):
+                        lemmatize_comment_list.append((batch[idx]['id'], lemmatized_comment))
+                        logging.debug(f"Prepared update for comment ID {batch[idx]['id']} to {lemmatized_comment}")
+                self.update_language(lemmatize_comment_list)
+
+
+

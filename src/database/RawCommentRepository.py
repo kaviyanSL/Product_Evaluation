@@ -21,7 +21,10 @@ class RawCommentRepository:
         raw_comments_table = Table('raw_comments_amazon', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
             stmt = sa.select(raw_comments_table.c.text).where(
-                            raw_comments_table.c.language == None)
+                            raw_comments_table.c.language == 'en').order_by(
+                            raw_comments_table.c.id)
+
+
             result = conn.execute(stmt)
             return result.fetchall()
 

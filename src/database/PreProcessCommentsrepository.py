@@ -1,7 +1,9 @@
 import sqlalchemy as sa
 from sqlalchemy import create_engine, Table, MetaData
 from src.database.db_connection import DBConnection
+import logging
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class PreProcessCommentsrepository:
     def __init__(self):
@@ -24,4 +26,13 @@ class PreProcessCommentsrepository:
             stmt = sa.select(pre_process_comments.c.comment)
             result = conn.execute(stmt)
             return result.fetchall()
+        
+    def bulk_update_lemmatize(self, bulk_update_lemmatize_comment):
+        pre_process_comments_table = Table('pre_process_comments', self.metadata, autoload_with=self.engine)
+        with self.engine.connect() as conn:
+            with conn.begin():  # Begin a transaction
+                for comment_id, reviews in bulk_update_lemmatize_comment:
+                    stmt = sa.update(pre_process_comments_table).where(pre_process_comments_table.c.id == comment_id).values(comment=reviews)
+                    conn.execute(stmt)
+                    logging.debug(f"update {comment_id} with {reviews}")
             

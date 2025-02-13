@@ -90,3 +90,15 @@ def language_update_multiprocessor():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@blueprint.route("/api/v1/update_lemmatize_multiprocessor/", methods=['POST'])
+def update_lemmatize_multiprocessor():
+    try:
+        db = RawCommentRepository()
+        text = db.get_all_raw_comments()
+        multi_lang = MultiprocessPreprocessText()
+        multi_lang.mutlti_processing_tex_lemmatize(text)
+        return jsonify({"updating language is done"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
