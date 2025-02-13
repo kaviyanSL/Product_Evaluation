@@ -1,5 +1,5 @@
 from flask import Flask
-from api.api import blueprint
+from src.api.api import blueprint
 
 def create_app():
     app = Flask(__name__)
