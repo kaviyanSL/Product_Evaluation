@@ -1,9 +1,12 @@
 import sqlalchemy as sa
 from sqlalchemy import create_engine, Table, MetaData
+from src.database.db_connection import DBConnection
+
 
 class ClusteredCommentRepository:
     def __init__(self):
-        self.engine = create_engine("mysql+pymysql://root:root@localhost:3307/product_db")
+        self.db_connection = DBConnection()
+        self.engine = self.db_connection.get_engine()
         self.metadata = MetaData()
 
     def save_clustered_comments(self, comment, cluster, vectorize_comment = None):
