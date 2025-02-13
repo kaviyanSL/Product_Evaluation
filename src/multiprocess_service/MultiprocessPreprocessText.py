@@ -27,7 +27,7 @@ class MultiprocessPreprocessText:
         raw_comment_repo = RawCommentRepository()
         raw_comment_repo.bulk_update_language(updates)
 
-    def update_lemmatize(self,lemmatize_comment_list):
+    def update_lemmatize(self, lemmatize_comment_list):
         if not lemmatize_comment_list:
             return
         lemmatize_comment = PreProcessCommentsrepository()
@@ -40,16 +40,18 @@ class MultiprocessPreprocessText:
             logging.debug(f"Processing batch from {batch_size} to {batch_size + number_of_record_per_patch}")
             batchsized_data = self.Batching.call_batchsized_data(batch_size, batch_size + number_of_record_per_patch)
             batchsized_data = pd.DataFrame(batchsized_data)
-            with Pool(processes=os.cpu_count() - 4) as p:
-                languages = p.map(detect_language, batchsized_data['text'])
-                updates = []
-                for idx, language in enumerate(languages):
-                    if not pd.isna(language):
-                        updates.append((batchsized_data.iloc[idx]['id'], language))
-                        logging.debug(f"Prepared update for comment ID {batchsized_data.iloc[idx]['id']} to {language}")
-                self.update_language(updates)
+            try:
+                with Pool(processes=os.cpu_count() - 4) as p:
+                    languages = p.map(detect_language, batchsized_data['text'])
+                    updates = []
+                    for idx, language in enumerate(languages):
+                        if not pd.isna(language):
+                            updates.append((batchsized_data.iloc[idx]['id'], language))
+                            logging.debug(f"Prepared update for comment ID {batchsized_data.iloc[idx]['id']} to {language}")
+                    self.update_language(updates)
+            except Exception as e:
+                logging.error("Error during multiprocessing language detection", exc_info=True)
             batch_size += number_of_record_per_patch
-
 
     def mutlti_processing_tex_lemmatize(self, comment_list):
         tex_pre_processor = TextPreProcessorService(comment_list)
@@ -65,15 +67,15 @@ class MultiprocessPreprocessText:
             batch = comment_list[start:end]
             logging.debug(f"batch {len(batch)}")
 
-            with Pool(processes=num_cores) as p:
-                lemmatized_comments = p.map(tex_pre_processor.preprocess, batch)
-                lemmatize_comment_list = []
-                logging.debug(f"going for enumerate reviews")
-                for idx, lemmatized_comment in enumerate(lemmatized_comments):
-                    if not pd.isna(lemmatized_comment):
-                        lemmatize_comment_list.append((batch[idx]['id'], lemmatized_comment))
-                        logging.debug(f"Prepared update for comment ID {batch[idx]['id']} to {lemmatized_comment}")
-                self.update_language(lemmatize_comment_list)
-
-
-
+            try:
+                with Pool(processes=num_cores) as p:
+                    lemmatized_comments = p.map(tex_pre_processor.preprocess, batch['comment'])
+                    lemmatize_comment_list = []
+                    logging.debug(f"going for enumerate reviews")
+                    for idx, lemmatized_comment in enumerate(lemmatized_comments):
+                        if not pd.isna(lemmatized_comment):
+                            lemmatize_comment_list.append((batch.iloc[idx]['id'], lemmatized_comment))
+                            logging.debug(f"Prepared update for comment ID {batch.iloc[idx]['id']} to {lemmatized_comment}")
+                    self.update_lemmatize(lemmatize_comment_list)
+            except Exception as e:
+                logging.error("Error during multiprocessing text lemmatization", exc_info=True)
