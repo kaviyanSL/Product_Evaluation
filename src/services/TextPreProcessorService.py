@@ -44,6 +44,18 @@ class TextPreProcessorService():
             return lemmatized_comments
         except Exception as e:
             return str(e)
+        
+    def preprocess(self, comment):
+        try:
+            comment = self.lower_case(comment)
+            comment = self.remove_punctuation(comment)
+            comment = self.remove_stopwords(comment)
+            comment = self.lemmatize(comment)
+            return comment
+        except Exception as e:
+            return str(e)
+        
+    
     
         
     
