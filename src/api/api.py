@@ -96,6 +96,9 @@ def update_lemmatize_multiprocessor():
     try:
         db = RawCommentRepository()
         text = db.get_all_raw_comments()
+        text = pd.DataFrame(text, columns=['id','comment'])
+        text.set_index('id', inplace=True)
+
         multi_lang = MultiprocessPreprocessText()
         multi_lang.mutlti_processing_tex_lemmatize(text)
         return jsonify({"updating language is done"}), 200
