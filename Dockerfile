@@ -1,9 +1,22 @@
 FROM python:3.12-slim
+
 WORKDIR /app
 
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ make libffi-dev libssl-dev && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip first
+RUN pip install --upgrade pip
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install dependencies
+RUN pip install -r requirements.txt --no-cache-dir --verbose
+
+# Install Playwright
 RUN playwright install --with-deps
+
 COPY /nltk_data /nltk_data
 COPY . .
 
