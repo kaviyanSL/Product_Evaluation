@@ -5,6 +5,7 @@ from src.database.RawCommentRepository import RawCommentRepository
 from multiprocessing import Pool
 import pandas as pd
 import os
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,6 +20,9 @@ class MultiprocessPreprocessText:
         self.Batching = Batching()
 
     def update_language(self, comment_id, language):
+        if pd.isna(language):
+            logging.warning(f"Detected language is NaN for comment ID {comment_id}. Skipping update.")
+            return
         RawCommentRepository().updating_language(comment_id, language)
 
     def multiprocess_language_detection(self):
