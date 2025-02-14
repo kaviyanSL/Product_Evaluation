@@ -82,8 +82,8 @@ def saving_clustered_comment():
         logging.debug("end for Clustering reviews")
         
         cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
-        logging.debug(f"cluster_data: {cluster_data}")
-        logging.debug(f"vectorized_reviews: {vectorized_reviews}")
+        #logging.debug(f"cluster_data: {cluster_data}")
+        #logging.debug(f"vectorized_reviews: {vectorized_reviews}")
         
         db = ClusteredCommentRepository()
 

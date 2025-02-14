@@ -10,7 +10,7 @@ class ClusteredCommentRepository:
         self.metadata = MetaData()
 
     def save_clustered_comments(self, comments):
-        clustered_comments_table = Table('clustered_comments', self.metadata, autoload_with=self.engine)
+        clustered_comments_table = Table('clustered_comment', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
             with conn.begin():  # Begin a transaction
                 stmt = sa.insert(clustered_comments_table).values(comments)
