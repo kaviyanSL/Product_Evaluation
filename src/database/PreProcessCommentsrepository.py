@@ -34,5 +34,5 @@ class PreProcessCommentsrepository:
                 for comment_id, reviews in bulk_update_lemmatize_comment:
                     stmt = sa.insert(pre_process_comments_table).values(id = int(comment_id), comment = reviews)
                     conn.execute(stmt)
-                    logging.debug(f"insert {int(comment_id)} with {reviews}")
+                    #logging.debug(f"insert {int(comment_id)} with {reviews}")
             

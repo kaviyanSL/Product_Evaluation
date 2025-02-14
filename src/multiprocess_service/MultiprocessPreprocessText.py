@@ -8,6 +8,7 @@ from multiprocessing import Pool
 import pandas as pd
 import os
 import numpy as np
+import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -78,7 +79,7 @@ class MultiprocessPreprocessText:
                 continue  
 
             batch.set_index('id', inplace=True)
-
+            logging.info(f"start time {datetime.datetime.now()} ")
             try:
                 with Pool(processes=num_cores) as p:
                     lemmatized_comments = p.map(tex_pre_processor.preprocess, batch['comment'])
@@ -87,7 +88,8 @@ class MultiprocessPreprocessText:
                     for idx, lemmatized_comment in enumerate(lemmatized_comments):
                         if not pd.isna(lemmatized_comment):
                             lemmatize_comment_list.append((batch.index[idx], lemmatized_comment))
-                            logging.debug(f"Prepared update for comment ID {batch.index[idx]} to {lemmatized_comment}")
+                            #logging.debug(f"Prepared update for comment ID {batch.index[idx]} to {lemmatized_comment}")
                     self.update_lemmatize(lemmatize_comment_list)
+                    logging.info(f"end time {datetime.datetime.now()} ")
             except Exception as e:
                 logging.error("Error during multiprocessing text lemmatization", exc_info=True)
