@@ -32,7 +32,7 @@ class TextPreProcessorService():
             comment = self.remove_punctuation(comment)
             comment = self.remove_stopwords(comment)
             comment = self.lemmatize(comment)
-            logging.info(f"comment is lemmatize {comment[:20]}")
+            logging.debug(f"comment is lemmatize {comment[:20]}")
             return comment
         except Exception as e:
             logging.error(e, exc_info=True)
