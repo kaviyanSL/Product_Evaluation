@@ -70,14 +70,21 @@ def saving_clustered_comment():
         reviews = db.get_all_pre_processed_comments()
         logging.debug("end for getting all pre processed comments")
         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
+        logging.debug(f"reviews DataFrame: {reviews.head()}")
+        
         vectorizer = NLPBasedModelsService(reviews['comment'])
         logging.debug("start for Vectorizing reviews")
         vectorize_review = vectorizer.vectorize_reviews()
         logging.debug("end for Vectorizing reviews")
+        
         logging.debug("start for Clustering reviews")
         clustering = ClusteringService(reviews, vectorize_review)
         logging.debug("end for Clustering reviews")
+        
         cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
+        logging.debug(f"cluster_data: {cluster_data}")
+        logging.debug(f"vectorized_reviews: {vectorized_reviews}")
+        
         db = ClusteredCommentRepository()
 
         # Collect comments and their clusters for bulk insert
@@ -94,10 +101,11 @@ def saving_clustered_comment():
         if bulk_insert_data:
             db.save_clustered_comments(bulk_insert_data)
 
-        if not reviews:
+        if reviews.empty:
             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
         return jsonify({"clustered_reviews": cluster_data}), 200
+
     except Exception as e:
         logging.error("Error during clustering", exc_info=True)
         return jsonify({"error": str(e)}), 500
