@@ -95,7 +95,7 @@ def saving_clustered_comment():
                     bulk_insert_data.append({
                         'comment': comment,
                         'cluster': cluster,
-                        'vectorized_comment': vec_comment
+                        'vectorize_comment': vec_comment
                     })
 
         if bulk_insert_data:
