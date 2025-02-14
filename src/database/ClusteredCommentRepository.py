@@ -1,3 +1,4 @@
+import logging
 import sqlalchemy as sa
 from sqlalchemy import create_engine, Table, MetaData
 from src.database.db_connection import DBConnection
@@ -10,11 +11,13 @@ class ClusteredCommentRepository:
         self.metadata = MetaData()
 
     def save_clustered_comments(self, comments):
-        clustered_comments_table = Table('clustered_comments', self.metadata, autoload_with=self.engine)
+        clustered_comments_table = Table('clustered_comment', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
             with conn.begin():  # Begin a transaction
                 stmt = sa.insert(clustered_comments_table).values(comments)
                 conn.execute(stmt)
+                logging.debug("Inserted clustered comments")
+
 
     def get_all_clustered_comments(self):
         clustered_comment_table = Table('clustered_comment', self.metadata, autoload_with=self.engine)
