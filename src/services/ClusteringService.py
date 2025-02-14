@@ -1,3 +1,4 @@
+import logging
 from sklearn.cluster import KMeans
 
 class ClusteringService():
@@ -22,6 +23,7 @@ class ClusteringService():
             if cluster not in clustered_reviews:
                 clustered_reviews[cluster] = []
             clustered_reviews[cluster].append(self.reviews.iloc[i])
+        logging.info(f"Clustered reviews is done")
 
         vectorized_reviews = {}    
         for i, cluster in enumerate(clusters):
@@ -29,6 +31,6 @@ class ClusteringService():
             if cluster not in vectorized_reviews:
                 vectorized_reviews[cluster] = []
             vectorized_reviews[cluster].append(self.vectorize_reviews[i])
-        
+        logging.info(f"Clustered Vectorized reviews is done")
         
         return clustered_reviews, vectorized_reviews

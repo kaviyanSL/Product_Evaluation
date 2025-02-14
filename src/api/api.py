@@ -82,8 +82,8 @@ def saving_clustered_comment():
         logging.debug("end for Clustering reviews")
         
         cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
-        #logging.debug(f"cluster_data: {cluster_data}")
-        #logging.debug(f"vectorized_reviews: {vectorized_reviews}")
+        # logging.debug(f"cluster_data: {cluster_data}")
+        # logging.debug(f"vectorized_reviews: {vectorized_reviews}")
         
         db = ClusteredCommentRepository()
 
@@ -97,18 +97,31 @@ def saving_clustered_comment():
                         'cluster': cluster,
                         'vectorize_comment': vec_comment
                     })
+        logging.info(f"bulk_insert_data completed")
 
-        if bulk_insert_data:
-            db.save_clustered_comments(bulk_insert_data)
+        # Batch the inserts
+        batch_size = 1000  # Adjust the batch size as needed
+        for i in range(0, len(bulk_insert_data), batch_size):
+            batch = bulk_insert_data[i:i + batch_size]
+            try:
+                logging.info(f"try to save clustered comments")
+                db.save_clustered_comments(batch)
+            except Exception as e:
+                logging.error("Error during batch insert", exc_info=True)
+                continue
 
         if reviews.empty:
             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
         return jsonify({"clustered_reviews": cluster_data}), 200
 
+    except KeyError as e:
+        logging.error(f"KeyError during clustering: {e}", exc_info=True)
+        return jsonify({"error": f"KeyError: {str(e)}"}), 500
     except Exception as e:
         logging.error("Error during clustering", exc_info=True)
         return jsonify({"error": str(e)}), 500
+    
 
 @blueprint.route("/api/v1/language_update_multiprocessor/", methods=['POST'])
 def language_update_multiprocessor():
