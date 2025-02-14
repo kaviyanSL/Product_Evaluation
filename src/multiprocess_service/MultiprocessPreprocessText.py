@@ -11,6 +11,11 @@ import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+error_log_handler = logging.FileHandler('multiprocess_error.log')
+error_log_handler.setLevel(logging.ERROR)
+error_log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_log_handler.setFormatter(error_log_formatter)
+logging.getLogger().addHandler(error_log_handler)
 
 # Top-level function for language detection
 def detect_language(comment):
@@ -60,12 +65,19 @@ class MultiprocessPreprocessText:
         # Calculate batch size
         total_comments = len(comment_list)
         num_cores = os.cpu_count() - 4
-        batch_size = total_comments // num_cores
+        batch_size = total_comments // num_cores 
 
         for start in range(0, total_comments, batch_size):
             end = min(start + batch_size, total_comments)
             batch = comment_list[start:end]
             logging.debug(f"batch {len(batch)}")
+
+            # Ensure 'id' column exists and set it as the index
+            if 'id' not in batch.columns:
+                logging.error("The DataFrame does not have an 'id' column.")
+                continue  
+
+            batch.set_index('id', inplace=True)
 
             try:
                 with Pool(processes=num_cores) as p:
@@ -74,8 +86,8 @@ class MultiprocessPreprocessText:
                     logging.debug(f"going for enumerate reviews")
                     for idx, lemmatized_comment in enumerate(lemmatized_comments):
                         if not pd.isna(lemmatized_comment):
-                            lemmatize_comment_list.append((batch.iloc[idx]['id'], lemmatized_comment))
-                            logging.debug(f"Prepared update for comment ID {batch.iloc[idx]['id']} to {lemmatized_comment}")
+                            lemmatize_comment_list.append((batch.index[idx], lemmatized_comment))
+                            logging.debug(f"Prepared update for comment ID {batch.index[idx]} to {lemmatized_comment}")
                     self.update_lemmatize(lemmatize_comment_list)
             except Exception as e:
                 logging.error("Error during multiprocessing text lemmatization", exc_info=True)

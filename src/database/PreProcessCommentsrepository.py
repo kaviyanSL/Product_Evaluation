@@ -32,7 +32,7 @@ class PreProcessCommentsrepository:
         with self.engine.connect() as conn:
             with conn.begin():  # Begin a transaction
                 for comment_id, reviews in bulk_update_lemmatize_comment:
-                    stmt = sa.update(pre_process_comments_table).where(pre_process_comments_table.c.id == comment_id).values(comment=reviews)
+                    stmt = sa.insert(pre_process_comments_table).values(id = int(comment_id), comment = reviews)
                     conn.execute(stmt)
-                    logging.debug(f"update {comment_id} with {reviews}")
+                    logging.debug(f"insert {int(comment_id)} with {reviews}")
             

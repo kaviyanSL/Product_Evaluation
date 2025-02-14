@@ -6,6 +6,7 @@ import nltk
 import os
 nltk_data_path = os.path.join(os.path.dirname(__file__), '..', 'nltk_data')
 nltk.data.path.append(nltk_data_path)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class TextPreProcessorService():
     def __init__(self, comment_list):
