@@ -9,12 +9,11 @@ class ClusteredCommentRepository:
         self.engine = self.db_connection.get_engine()
         self.metadata = MetaData()
 
-    def save_clustered_comments(self, comment, cluster, vectorize_comment = None):
-        clustered_comment = Table('clustered_comment', self.metadata, autoload_with=self.engine)
+    def save_clustered_comments(self, comments):
+        clustered_comments_table = Table('clustered_comments', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
-            with conn.begin():
-                stmt = sa.insert(clustered_comment).values(comment=comment, cluster=cluster, 
-                                                        vectorize_comment=vectorize_comment)
+            with conn.begin():  # Begin a transaction
+                stmt = sa.insert(clustered_comments_table).values(comments)
                 conn.execute(stmt)
 
     def get_all_clustered_comments(self):

@@ -93,3 +93,5 @@ class MultiprocessPreprocessText:
                     logging.info(f"end time {datetime.datetime.now()} ")
             except Exception as e:
                 logging.error("Error during multiprocessing text lemmatization", exc_info=True)
+
+

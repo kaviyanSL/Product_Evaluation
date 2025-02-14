@@ -23,7 +23,7 @@ class PreProcessCommentsrepository:
     def get_all_pre_processed_comments(self):
         pre_process_comments = Table('pre_process_comments', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
-            stmt = sa.select(pre_process_comments.c.comment)
+            stmt = sa.select(pre_process_comments.c.id,pre_process_comments.c.comment)
             result = conn.execute(stmt)
             return result.fetchall()
         

@@ -8,8 +8,12 @@ from src.database.RawCommentRepository import RawCommentRepository
 from src.database.PreProcessCommentsrepository import PreProcessCommentsrepository
 from src.services.LanguageDetectionService import LanguageDetectionService
 from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPreprocessText
+from src.database.ClassificationModelRepository import ClassificationModelRepository
+from src.services.ClassificationModelService import ClassificationModelService
+import logging
 import pandas as pd
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 blueprint = Blueprint('product_eval', __name__)
 
 @blueprint.route("/api/v1/saving_raw_comment/", methods=['POST'])
@@ -62,23 +66,40 @@ def saving_pre_processed_comment():
 def saving_clustered_comment():
     try:
         db = PreProcessCommentsrepository()
+        logging.debug("start for getting all pre processed comments")
         reviews = db.get_all_pre_processed_comments()
-        reviews = [comment[0] for comment in reviews]
-        vectorizer = NLPBasedModelsService(reviews)
+        logging.debug("end for getting all pre processed comments")
+        reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
+        vectorizer = NLPBasedModelsService(reviews['comment'])
+        logging.debug("start for Vectorizing reviews")
         vectorize_review = vectorizer.vectorize_reviews()
+        logging.debug("end for Vectorizing reviews")
+        logging.debug("start for Clustering reviews")
         clustering = ClusteringService(reviews, vectorize_review)
+        logging.debug("end for Clustering reviews")
         cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
         db = ClusteredCommentRepository()
+
+        # Collect comments and their clusters for bulk insert
+        bulk_insert_data = []
         for cluster in cluster_data.keys():
             if len(cluster_data[cluster]) > 0:
                 for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
-                    db.save_clustered_comments(comment, cluster, vec_comment)
+                    bulk_insert_data.append({
+                        'comment': comment,
+                        'cluster': cluster,
+                        'vectorized_comment': vec_comment
+                    })
+
+        if bulk_insert_data:
+            db.save_clustered_comments(bulk_insert_data)
+
         if not reviews:
             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
         return jsonify({"clustered_reviews": cluster_data}), 200
-
     except Exception as e:
+        logging.error("Error during clustering", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @blueprint.route("/api/v1/language_update_multiprocessor/", methods=['POST'])
@@ -103,5 +124,19 @@ def update_lemmatize_multiprocessor():
         multi_lang.mutlti_processing_tex_lemmatize(text)
         return jsonify({"updating language is done"}), 200
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@blueprint.route("/api/v1/creating_classification_model/", methods=['POST'])
+def creating_classification_models():
+    try:
+        db_cluster = ClusteredCommentRepository()
+        result = db_cluster.get_all_clustered_comments()
+        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'vectorized_comment'])
+        clf = ClassificationModelService()
+        model_pickle = clf.MLP_Classifier(result['vectorized_comment'], result['cluster'])
+        db_classification = ClassificationModelRepository()
+        db_classification.saving_classification_model(model_pickle)
+        return jsonify({"classification model is created"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
