@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import pickle
 import logging
+import os
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
@@ -11,13 +12,17 @@ class ClassificationModelService():
 
     def DNN_Classifier(self, data, target):
         # Ensure TensorFlow uses GPU if available
-        physical_devices = tf.config.list_physical_devices('GPU')
-        if physical_devices:
-            try:
-                tf.config.experimental.set_memory_growth(physical_devices[0], True)
-                logging.info("GPU is available and will be used for training.")
-            except RuntimeError as e:
-                logging.error(f"Error setting up GPU: {e}")
+        # physical_devices = tf.config.list_physical_devices('GPU')
+        # if physical_devices:
+        #     try:
+        #         tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        #         logging.info("GPU is available and will be used for training.")
+        #     except RuntimeError as e:
+        #         logging.error(f"Error setting up GPU: {e}")
+
+
+        # Force TensorFlow to use CPU only
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
         # Split the data into training and testing sets
         X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=42)
