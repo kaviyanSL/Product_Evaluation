@@ -10,6 +10,8 @@ from src.services.LanguageDetectionService import LanguageDetectionService
 from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPreprocessText
 from src.database.ClassificationModelRepository import ClassificationModelRepository
 from src.services.ClassificationModelService import ClassificationModelService
+import scipy.sparse
+import re
 import logging
 import pandas as pd
 
@@ -148,16 +150,38 @@ def update_lemmatize_multiprocessor():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+
 @blueprint.route("/api/v1/creating_classification_model/", methods=['POST'])
 def creating_classification_models():
     try:
         db_cluster = ClusteredCommentRepository()
         result = db_cluster.get_all_clustered_comments()
-        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'vectorized_comment'])
+        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Log the first few entries to inspect the data
+        logging.debug(f"DataFrame head: {result.head()}")
+        
+        # Function to parse the string representation of a sparse matrix
+        def parse_sparse_matrix(s):
+            pattern = re.compile(r'\(0, (\d+)\)\t([\d\.]+)')
+            matches = pattern.findall(s)
+            indices = [int(match[0]) for match in matches]
+            values = [float(match[1]) for match in matches]
+            shape = (1, 414316)  # Assuming the shape is known and fixed
+            return scipy.sparse.csr_matrix((values, ([0] * len(indices), indices)), shape=shape)
+        
+        # Convert the 'vectorized_comment' column to a list of sparse matrices
+        vectorized_comments = [parse_sparse_matrix(s) for s in result['vectorized_comment']]
+        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        logging.info("scipy.sparse.vstack(vectorized_comments) is done")
+        
         clf = ClassificationModelService()
-        model_pickle = clf.MLP_Classifier(result['vectorized_comment'], result['cluster'])
+        model_pickle = clf.DNN_Classifier(vectorized_comments, result['cluster'])
+        
         db_classification = ClassificationModelRepository()
         db_classification.saving_classification_model(model_pickle)
+        
         return jsonify({"classification model is created"}), 200
     except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
         return jsonify({"error": str(e)}), 500
