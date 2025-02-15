@@ -198,7 +198,7 @@ def saving_clustered_comment_bert_embeding():
         
         vectorizer = NLPBasedModelsService(reviews['comment'])
         logging.debug("start for Vectorizing reviews")
-        vectorize_review = vectorizer.bert_embedding()
+        vectorize_review = vectorizer.bert_embedding(reviews['comment'])
         logging.debug("end for Vectorizing reviews")
         
         logging.debug("start for Clustering reviews")
@@ -245,7 +245,7 @@ def saving_clustered_comment_bert_embeding():
         logging.error("Error during clustering", exc_info=True)
         return jsonify({"error": str(e)}), 500
     
-    
+
     
 @blueprint.route("/api/v1/creating_BERT_classification_model/", methods=['POST'])
 def creating_BERT_classification_models():
