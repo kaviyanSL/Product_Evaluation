@@ -1,6 +1,9 @@
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import tensorflow as tf
+from transformers import TFBertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments
+from tensorflow import keras
+from tensorflow.keras.optimizers import Adam  
 import numpy as np
 import pickle
 import logging
@@ -53,6 +56,57 @@ class ClassificationModelService():
         class_report = classification_report(y_test, y_pred)
         logging.info(f"Classification Report:\n{class_report}")
         
+        # Generate and log the confusion matrix
+        conf_matrix = confusion_matrix(y_test, y_pred)
+        logging.info(f"Confusion Matrix:\n{conf_matrix}")
+        
+        # Serialize the model using pickle
+        model_pickle = pickle.dumps(model)
+        
+        return model_pickle
+    
+    def bert_classifier(self, data, target):
+        
+        # Split the data into training and testing sets
+        X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=42)
+        
+        # Load the BERT model
+        model = TFBertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=len(np.unique(target)))
+        
+        # Define training arguments
+        training_args = TrainingArguments(
+            output_dir='./results',
+            num_train_epochs=3,
+            per_device_train_batch_size=32,
+            per_device_eval_batch_size=32,
+            warmup_steps=500,
+            weight_decay=0.01,
+            logging_dir='./logs',
+            logging_steps=10,
+        )
+       # Create Trainer instance
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=(X_train, y_train),
+            eval_dataset=(X_test, y_test),
+        )
+
+        # Train the model
+        trainer.train()
+
+        # Predict on the test data
+        predictions = trainer.predict(X_test).predictions
+        y_pred = np.argmax(predictions, axis=1)
+
+        # Calculate and log the accuracy
+        accuracy = accuracy_score(y_test, y_pred)
+        logging.info(f"Model Accuracy: {accuracy}")
+
+        # Generate and log the classification report
+        class_report = classification_report(y_test, y_pred)
+        logging.info(f"Classification Report:\n{class_report}")
+
         # Generate and log the confusion matrix
         conf_matrix = confusion_matrix(y_test, y_pred)
         logging.info(f"Confusion Matrix:\n{conf_matrix}")
