@@ -185,3 +185,99 @@ def creating_classification_models():
     except Exception as e:
         logging.error("Error during model creation", exc_info=True)
         return jsonify({"error": str(e)}), 500
+    
+@blueprint.route("/api/v1/saving_clustered_comment_bert_embeding/", methods=['POST'])
+def saving_clustered_comment_bert_embeding():
+    try:
+        db = PreProcessCommentsrepository()
+        logging.debug("start for getting all pre processed comments")
+        reviews = db.get_all_pre_processed_comments()
+        logging.debug("end for getting all pre processed comments")
+        reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
+        logging.debug(f"reviews DataFrame: {reviews.head()}")
+        
+        vectorizer = NLPBasedModelsService(reviews['comment'])
+        logging.debug("start for Vectorizing reviews")
+        vectorize_review = vectorizer.bert_embedding()
+        logging.debug("end for Vectorizing reviews")
+        
+        logging.debug("start for Clustering reviews")
+        clustering = ClusteringService(reviews, vectorize_review)
+        logging.debug("end for Clustering reviews")
+        
+        cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
+        # logging.debug(f"cluster_data: {cluster_data}")
+        # logging.debug(f"vectorized_reviews: {vectorized_reviews}")
+        
+        db = ClusteredCommentRepository()
+
+        # Collect comments and their clusters for bulk insert
+        bulk_insert_data = []
+        for cluster in cluster_data.keys():
+            if len(cluster_data[cluster]) > 0:
+                for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
+                    bulk_insert_data.append({
+                        'comment': comment,
+                        'cluster': cluster,
+                        'vectorize_comment': vec_comment
+                    })
+        logging.info(f"bulk_insert_data completed")
+
+        # Batch the inserts
+        batch_size = 1000  # Adjust the batch size as needed
+        for i in range(0, len(bulk_insert_data), batch_size):
+            batch = bulk_insert_data[i:i + batch_size]
+            try:
+                logging.info(f"try to save clustered comments")
+                db.save_clustered_comments(batch)
+            except Exception as e:
+                logging.error("Error during batch insert", exc_info=True)
+                continue
+        if reviews.empty:
+            return jsonify({"message": "No preprocess reviews found in database"}), 200
+
+        return jsonify({"clustered_reviews": cluster_data}), 200
+
+    except KeyError as e:
+        logging.error(f"KeyError during clustering: {e}", exc_info=True)
+        return jsonify({"error": f"KeyError: {str(e)}"}), 500
+    except Exception as e:
+        logging.error("Error during clustering", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+    
+    
+@blueprint.route("/api/v1/creating_BERT_classification_model/", methods=['POST'])
+def creating_BERT_classification_models():
+    try:
+        db_cluster = ClusteredCommentRepository()
+        result = db_cluster.get_all_clustered_comments()
+        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Log the first few entries to inspect the data
+        logging.debug(f"DataFrame head: {result.head()}")
+        
+        # Function to parse the string representation of a sparse matrix
+        def parse_sparse_matrix(s):
+            pattern = re.compile(r'\(0, (\d+)\)\t([\d\.]+)')
+            matches = pattern.findall(s)
+            indices = [int(match[0]) for match in matches]
+            values = [float(match[1]) for match in matches]
+            shape = (1, 414316)  # Assuming the shape is known and fixed
+            return scipy.sparse.csr_matrix((values, ([0] * len(indices), indices)), shape=shape)
+        
+        # Convert the 'vectorized_comment' column to a list of sparse matrices
+        vectorized_comments = [parse_sparse_matrix(s) for s in result['vectorized_comment']]
+        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        logging.info("scipy.sparse.vstack(vectorized_comments) is done")
+        
+        clf = ClassificationModelService()
+        model_pickle = clf.bert_classifier(vectorized_comments, result['cluster'])
+        
+        db_classification = ClassificationModelRepository()
+        db_classification.saving_classification_model(model_pickle)
+        
+        return jsonify({"classification model is created"}), 200
+    except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
+        return jsonify({"error": str(e)}), 500
