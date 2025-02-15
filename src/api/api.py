@@ -195,7 +195,7 @@ def saving_clustered_comment_bert_embeding():
         logging.debug("end for getting all pre processed comments")
         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
         batch_size_cluster = 50000
-        for start in range(0,len(reviews),batch_size_cluster):
+        for start in range(50000,len(reviews),batch_size_cluster):
             end = min(start+batch_size_cluster,len(reviews))
             reviews = reviews.iloc[start:end]
             logging.debug(f"reviews DataFrame: {reviews.head()}")
