@@ -7,6 +7,7 @@ import numpy as np
 import pickle
 import logging
 import os
+from datasets import Dataset
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
@@ -65,9 +66,16 @@ class ClassificationModelService():
         return model_pickle
     
     def bert_classifier(self, data, target):
-        
+        # Convert data to the correct format
+        dataset = Dataset.from_dict({
+            'input_ids': [d.tolist() for d in data],
+            'labels': target.tolist()
+        })
+
         # Split the data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=42)
+        train_test_split = dataset.train_test_split(test_size=0.2, seed=42)
+        train_dataset = train_test_split['train']
+        test_dataset = train_test_split['test']
         
         # Load the BERT model
         model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=len(np.unique(target)))
@@ -88,27 +96,27 @@ class ClassificationModelService():
         trainer = Trainer(
             model=model,
             args=training_args,
-            train_dataset=(X_train, y_train),
-            eval_dataset=(X_test, y_test),
+            train_dataset=train_dataset,
+            eval_dataset=test_dataset,
         )
 
         # Train the model
         trainer.train()
 
         # Predict on the test data
-        predictions = trainer.predict(X_test).predictions
+        predictions = trainer.predict(test_dataset).predictions
         y_pred = np.argmax(predictions, axis=1)
 
         # Calculate and log the accuracy
-        accuracy = accuracy_score(y_test, y_pred)
+        accuracy = accuracy_score(test_dataset['labels'], y_pred)
         logging.info(f"Model Accuracy: {accuracy}")
 
         # Generate and log the classification report
-        class_report = classification_report(y_test, y_pred)
+        class_report = classification_report(test_dataset['labels'], y_pred)
         logging.info(f"Classification Report:\n{class_report}")
 
         # Generate and log the confusion matrix
-        conf_matrix = confusion_matrix(y_test, y_pred)
+        conf_matrix = confusion_matrix(test_dataset['labels'], y_pred)
         logging.info(f"Confusion Matrix:\n{conf_matrix}")
         
         # Serialize the model using pickle
