@@ -1,9 +1,8 @@
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import tensorflow as tf
-from transformers import TFBertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments
-from tensorflow import keras
-from tensorflow.keras.optimizers import Adam  
+import torch
+from transformers import BertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments
 import numpy as np
 import pickle
 import logging
@@ -71,7 +70,7 @@ class ClassificationModelService():
         X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=42)
         
         # Load the BERT model
-        model = TFBertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=len(np.unique(target)))
+        model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=len(np.unique(target)))
         
         # Define training arguments
         training_args = TrainingArguments(
@@ -84,7 +83,8 @@ class ClassificationModelService():
             logging_dir='./logs',
             logging_steps=10,
         )
-       # Create Trainer instance
+        
+        # Create Trainer instance
         trainer = Trainer(
             model=model,
             args=training_args,
