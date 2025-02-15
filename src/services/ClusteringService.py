@@ -22,7 +22,7 @@ class ClusteringService():
             cluster = int(cluster)
             if cluster not in clustered_reviews:
                 clustered_reviews[cluster] = []
-            clustered_reviews[cluster].append(self.reviews.iloc[i])
+            clustered_reviews[cluster].append(self.reviews[i])
         logging.info(f"Clustered reviews is done")
 
         vectorized_reviews = {}    
