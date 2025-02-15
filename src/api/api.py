@@ -44,85 +44,85 @@ def scrape_reviews():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@blueprint.route("/api/v1/saving_pre_processed_comment/", methods=['POST'])
-def saving_pre_processed_comment():
-    try:
-        db = RawCommentRepository()
-        text = db.get_all_raw_comments()
-        text = [comment[0] for comment in text]
-        pre_processed_text = TextPreProcessorService(text)
-        reviews = pre_processed_text.lemmatize()
-        db = PreProcessCommentsrepository()
-        for pre in reviews:
-            db.saving_pre_processed_comments(pre)
+# @blueprint.route("/api/v1/saving_pre_processed_comment/", methods=['POST'])
+# def saving_pre_processed_comment():
+#     try:
+#         db = RawCommentRepository()
+#         text = db.get_all_raw_comments()
+#         text = [comment[0] for comment in text]
+#         pre_processed_text = TextPreProcessorService(text)
+#         reviews = pre_processed_text.lemmatize()
+#         db = PreProcessCommentsrepository()
+#         for pre in reviews:
+#             db.saving_pre_processed_comments(pre)
 
-        if not reviews:
-            return jsonify({"message": "No reviews found on database"}), 200
+#         if not reviews:
+#             return jsonify({"message": "No reviews found on database"}), 200
 
-        return jsonify({"preprocess_reviews": reviews}), 200
+#         return jsonify({"preprocess_reviews": reviews}), 200
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
-@blueprint.route("/api/v1/saving_clustered_comment/", methods=['POST'])
-def saving_clustered_comment():
-    try:
-        db = PreProcessCommentsrepository()
-        logging.debug("start for getting all pre processed comments")
-        reviews = db.get_all_pre_processed_comments()
-        logging.debug("end for getting all pre processed comments")
-        reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
-        logging.debug(f"reviews DataFrame: {reviews.head()}")
+# @blueprint.route("/api/v1/saving_clustered_comment/", methods=['POST'])
+# def saving_clustered_comment():
+#     try:
+#         db = PreProcessCommentsrepository()
+#         logging.debug("start for getting all pre processed comments")
+#         reviews = db.get_all_pre_processed_comments()
+#         logging.debug("end for getting all pre processed comments")
+#         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
+#         logging.debug(f"reviews DataFrame: {reviews.head()}")
         
-        vectorizer = NLPBasedModelsService(reviews['comment'])
-        logging.debug("start for Vectorizing reviews")
-        vectorize_review = vectorizer.vectorize_reviews()
-        logging.debug("end for Vectorizing reviews")
+#         vectorizer = NLPBasedModelsService(reviews['comment'])
+#         logging.debug("start for Vectorizing reviews")
+#         vectorize_review = vectorizer.vectorize_reviews()
+#         logging.debug("end for Vectorizing reviews")
         
-        logging.debug("start for Clustering reviews")
-        clustering = ClusteringService(reviews, vectorize_review)
-        logging.debug("end for Clustering reviews")
+#         logging.debug("start for Clustering reviews")
+#         clustering = ClusteringService(reviews, vectorize_review)
+#         logging.debug("end for Clustering reviews")
         
-        cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
-        # logging.debug(f"cluster_data: {cluster_data}")
-        # logging.debug(f"vectorized_reviews: {vectorized_reviews}")
+#         cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
+#         # logging.debug(f"cluster_data: {cluster_data}")
+#         # logging.debug(f"vectorized_reviews: {vectorized_reviews}")
         
-        db = ClusteredCommentRepository()
+#         db = ClusteredCommentRepository()
 
-        # Collect comments and their clusters for bulk insert
-        bulk_insert_data = []
-        for cluster in cluster_data.keys():
-            if len(cluster_data[cluster]) > 0:
-                for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
-                    bulk_insert_data.append({
-                        'comment': comment,
-                        'cluster': cluster,
-                        'vectorize_comment': vec_comment
-                    })
-        logging.info(f"bulk_insert_data completed")
+#         # Collect comments and their clusters for bulk insert
+#         bulk_insert_data = []
+#         for cluster in cluster_data.keys():
+#             if len(cluster_data[cluster]) > 0:
+#                 for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
+#                     bulk_insert_data.append({
+#                         'comment': comment,
+#                         'cluster': cluster,
+#                         'vectorize_comment': vec_comment
+#                     })
+#         logging.info(f"bulk_insert_data completed")
 
-        # Batch the inserts
-        batch_size = 1000  # Adjust the batch size as needed
-        for i in range(0, len(bulk_insert_data), batch_size):
-            batch = bulk_insert_data[i:i + batch_size]
-            try:
-                logging.info(f"try to save clustered comments")
-                db.save_clustered_comments(batch)
-            except Exception as e:
-                logging.error("Error during batch insert", exc_info=True)
-                continue
+#         # Batch the inserts
+#         batch_size = 1000  # Adjust the batch size as needed
+#         for i in range(0, len(bulk_insert_data), batch_size):
+#             batch = bulk_insert_data[i:i + batch_size]
+#             try:
+#                 logging.info(f"try to save clustered comments")
+#                 db.save_clustered_comments(batch)
+#             except Exception as e:
+#                 logging.error("Error during batch insert", exc_info=True)
+#                 continue
 
-        if reviews.empty:
-            return jsonify({"message": "No preprocess reviews found in database"}), 200
+#         if reviews.empty:
+#             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
-        return jsonify({"clustered_reviews": cluster_data}), 200
+#         return jsonify({"clustered_reviews": cluster_data}), 200
 
-    except KeyError as e:
-        logging.error(f"KeyError during clustering: {e}", exc_info=True)
-        return jsonify({"error": f"KeyError: {str(e)}"}), 500
-    except Exception as e:
-        logging.error("Error during clustering", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+#     except KeyError as e:
+#         logging.error(f"KeyError during clustering: {e}", exc_info=True)
+#         return jsonify({"error": f"KeyError: {str(e)}"}), 500
+#     except Exception as e:
+#         logging.error("Error during clustering", exc_info=True)
+#         return jsonify({"error": str(e)}), 500
     
 
 @blueprint.route("/api/v1/language_update_multiprocessor/", methods=['POST'])
@@ -194,49 +194,53 @@ def saving_clustered_comment_bert_embeding():
         reviews = db.get_all_pre_processed_comments()
         logging.debug("end for getting all pre processed comments")
         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
-        logging.debug(f"reviews DataFrame: {reviews.head()}")
-        
-        vectorizer = NLPBasedModelsService(reviews['comment'])
-        logging.debug("start for Vectorizing reviews")
-        vectorize_review = vectorizer.bert_embedding()
-        logging.debug("end for Vectorizing reviews")
-        
-        logging.debug("start for Clustering reviews")
-        clustering = ClusteringService(reviews, vectorize_review)
-        logging.debug("end for Clustering reviews")
-        
-        cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
-        # logging.debug(f"cluster_data: {cluster_data}")
-        # logging.debug(f"vectorized_reviews: {vectorized_reviews}")
-        
-        db = ClusteredCommentRepository()
+        batch_size_cluster = 5000
+        for start in range(0,len(reviews),batch_size_cluster):
+            end = min(start+batch_size_cluster,len(reviews))
+            reviews = reviews.iloc[start:end]
+            logging.debug(f"reviews DataFrame: {reviews.head()}")
+            
+            vectorizer = NLPBasedModelsService(reviews['comment'])
+            logging.debug("start for Vectorizing reviews")
+            vectorize_review = vectorizer.bert_embedding(reviews['comment'].to_list())
+            logging.debug("end for Vectorizing reviews")
+            
+            logging.debug("start for Clustering reviews")
+            clustering = ClusteringService(reviews['comment'].to_list(), vectorize_review)
+            logging.debug("end for Clustering reviews")
+            
+            cluster_data, vectorized_reviews = clustering.get_clustered_reviews()
+            # logging.debug(f"cluster_data: {cluster_data}")
+            # logging.debug(f"vectorized_reviews: {vectorized_reviews}")
+            
+            db = ClusteredCommentRepository()
 
-        # Collect comments and their clusters for bulk insert
-        bulk_insert_data = []
-        for cluster in cluster_data.keys():
-            if len(cluster_data[cluster]) > 0:
-                for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
-                    bulk_insert_data.append({
-                        'comment': comment,
-                        'cluster': cluster,
-                        'vectorize_comment': vec_comment
-                    })
-        logging.info(f"bulk_insert_data completed")
+            # Collect comments and their clusters for bulk insert
+            bulk_insert_data = []
+            for cluster in cluster_data.keys():
+                if len(cluster_data[cluster]) > 0:
+                    for comment, vec_comment in zip(cluster_data[cluster], vectorized_reviews[cluster]):
+                        bulk_insert_data.append({
+                            'comment': comment,
+                            'cluster': cluster,
+                            'vectorize_comment': vec_comment
+                        })
+            logging.info(f"bulk_insert_data completed")
 
-        # Batch the inserts
-        batch_size = 1000  # Adjust the batch size as needed
-        for i in range(0, len(bulk_insert_data), batch_size):
-            batch = bulk_insert_data[i:i + batch_size]
-            try:
-                logging.info(f"try to save clustered comments")
-                db.save_clustered_comments(batch)
-            except Exception as e:
-                logging.error("Error during batch insert", exc_info=True)
-                continue
+            # Batch the inserts
+            batch_size = 1000  # Adjust the batch size as needed
+            for i in range(0, len(bulk_insert_data), batch_size):
+                batch = bulk_insert_data[i:i + batch_size]
+                try:
+                    logging.info(f"try to save clustered comments")
+                    db.save_clustered_comments(batch)
+                except Exception as e:
+                    logging.error("Error during batch insert", exc_info=True)
+                    continue
         if reviews.empty:
             return jsonify({"message": "No preprocess reviews found in database"}), 200
 
-        return jsonify({"clustered_reviews": cluster_data}), 200
+        return jsonify({"clustered_reviewsis done"}), 200
 
     except KeyError as e:
         logging.error(f"KeyError during clustering: {e}", exc_info=True)
@@ -245,7 +249,7 @@ def saving_clustered_comment_bert_embeding():
         logging.error("Error during clustering", exc_info=True)
         return jsonify({"error": str(e)}), 500
     
-    
+
     
 @blueprint.route("/api/v1/creating_BERT_classification_model/", methods=['POST'])
 def creating_BERT_classification_models():
