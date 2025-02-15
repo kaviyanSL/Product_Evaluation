@@ -68,7 +68,7 @@ class ClassificationModelService():
     def bert_classifier(self, data, target):
         # Convert data to the correct format
         dataset = Dataset.from_dict({
-            'input_ids': [d.tolist() for d in data],
+            'input_ids': data.toarray().tolist(),  # Convert sparse matrix to dense and then to list
             'labels': target.tolist()
         })
 
@@ -77,46 +77,71 @@ class ClassificationModelService():
         train_dataset = train_test_split['train']
         test_dataset = train_test_split['test']
         
-        # Load the BERT model
-        model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=len(np.unique(target)))
-        
-        # Define training arguments
-        training_args = TrainingArguments(
-            output_dir='./results',
-            num_train_epochs=3,
-            per_device_train_batch_size=32,
-            per_device_eval_batch_size=32,
-            warmup_steps=500,
-            weight_decay=0.01,
-            logging_dir='./logs',
-            logging_steps=10,
+        # Define the model architecture
+        model = torch.nn.Sequential(
+            torch.nn.Linear(data.shape[1], 512),
+            torch.nn.ReLU(),
+            torch.nn.Linear(512, 256),
+            torch.nn.ReLU(),
+            torch.nn.Linear(256, len(np.unique(target))),
+            torch.nn.Softmax(dim=1)
         )
         
-        # Create Trainer instance
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=train_dataset,
-            eval_dataset=test_dataset,
-        )
-
-        # Train the model
-        trainer.train()
-
-        # Predict on the test data
-        predictions = trainer.predict(test_dataset).predictions
-        y_pred = np.argmax(predictions, axis=1)
-
+        # Define loss function and optimizer
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        
+        # Convert datasets to DataLoader
+        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+        
+        # Training loop
+        model.train()
+        for epoch in range(3):  # Number of epochs
+            running_loss = 0.0
+            for inputs in train_loader:
+                input_ids = torch.tensor(inputs['input_ids'])
+                labels = torch.tensor(inputs['labels'])
+                
+                # Zero the parameter gradients
+                optimizer.zero_grad()
+                
+                # Forward pass
+                outputs = model(input_ids)
+                loss = criterion(outputs, labels)
+                
+                # Backward pass and optimize
+                loss.backward()
+                optimizer.step()
+                
+                running_loss += loss.item()
+            logging.info(f"Epoch {epoch+1}, Loss: {running_loss/len(train_loader)}")
+        
+        # Evaluation loop
+        model.eval()
+        all_preds = []
+        all_labels = []
+        with torch.no_grad():
+            for inputs in test_loader:
+                input_ids = torch.tensor(inputs['input_ids'])
+                labels = torch.tensor(inputs['labels'])
+                
+                outputs = model(input_ids)
+                _, preds = torch.max(outputs, 1)
+                
+                all_preds.extend(preds.numpy())
+                all_labels.extend(labels.numpy())
+        
         # Calculate and log the accuracy
-        accuracy = accuracy_score(test_dataset['labels'], y_pred)
+        accuracy = accuracy_score(all_labels, all_preds)
         logging.info(f"Model Accuracy: {accuracy}")
 
         # Generate and log the classification report
-        class_report = classification_report(test_dataset['labels'], y_pred)
+        class_report = classification_report(all_labels, all_preds)
         logging.info(f"Classification Report:\n{class_report}")
 
         # Generate and log the confusion matrix
-        conf_matrix = confusion_matrix(test_dataset['labels'], y_pred)
+        conf_matrix = confusion_matrix(all_labels, all_preds)
         logging.info(f"Confusion Matrix:\n{conf_matrix}")
         
         # Serialize the model using pickle
