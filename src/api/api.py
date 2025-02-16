@@ -14,6 +14,9 @@ import scipy.sparse
 import re
 import logging
 import pandas as pd
+import ast
+import json
+import numpy as np
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 blueprint = Blueprint('product_eval', __name__)
@@ -176,7 +179,7 @@ def creating_classification_models():
         logging.info("scipy.sparse.vstack(vectorized_comments) is done")
         
         clf = ClassificationModelService()
-        model_pickle = clf.DNN_Classifier(vectorized_comments, result['cluster'])
+        model_pickle = clf.DNN_Classifier_old(vectorized_comments, result['cluster'])
         
         db_classification = ClassificationModelRepository()
         db_classification.saving_classification_model(model_pickle)
@@ -260,18 +263,9 @@ def creating_BERT_classification_models():
         
         # Log the first few entries to inspect the data
         logging.debug(f"DataFrame head: {result.head()}")
-        
-        # Function to parse the string representation of a sparse matrix
-        def parse_sparse_matrix(s):
-            pattern = re.compile(r'\(0, (\d+)\)\t([\d\.]+)')
-            matches = pattern.findall(s)
-            indices = [int(match[0]) for match in matches]
-            values = [float(match[1]) for match in matches]
-            shape = (1, 414316)  # Assuming the shape is known and fixed
-            return scipy.sparse.csr_matrix((values, ([0] * len(indices), indices)), shape=shape)
-        
-        # Convert the 'vectorized_comment' column to a list of sparse matrices
-        vectorized_comments = [parse_sparse_matrix(s) for s in result['vectorized_comment']]
+
+        # Ensure vectorized_comments are in the correct format
+        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if isinstance(vc, str) else vc for vc in result['vectorized_comment']]
         vectorized_comments = scipy.sparse.vstack(vectorized_comments)
         logging.info("scipy.sparse.vstack(vectorized_comments) is done")
         
@@ -285,3 +279,46 @@ def creating_BERT_classification_models():
     except Exception as e:
         logging.error("Error during model creation", exc_info=True)
         return jsonify({"error": str(e)}), 500
+    
+@blueprint.route("/api/v1/creating_mlp_classification_model/", methods=['POST'])
+def creating_mlp_classification_models():
+    try:
+        db_cluster = ClusteredCommentRepository()
+        result = db_cluster.get_all_clustered_comments()
+        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Log the first few entries to inspect the data
+        logging.debug(f"DataFrame head: {result.head()}")
+
+        # Ensure vectorized_comments are in the correct format
+        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if isinstance(vc, str) else vc for vc in result['vectorized_comment']]
+        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        logging.info("scipy.sparse.vstack(vectorized_comments) is done")
+        
+        clf = ClassificationModelService()
+        model_pickle = clf.dnn_classifier(vectorized_comments, result['cluster'])
+        
+        db_classification = ClassificationModelRepository()
+        db_classification.saving_classification_model(model_name = 'DNN_Classifier',model_pickle = model_pickle)
+        
+        return jsonify({"classification model is created"}), 200
+    except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+
+@blueprint.route("/api/v1/comment_classifier_predictor/", methods=['GET'])
+def comment_classifier_predictor():
+    try:
+        db_classification = ClassificationModelRepository()
+        db_classification.get_classification_model(model_name = 'DNN_Classifier')
+        
+        
+        return jsonify({"classification model is created"}), 200
+    except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+    
+
+

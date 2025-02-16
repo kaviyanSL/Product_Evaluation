@@ -12,17 +12,17 @@ class ClassificationModelRepository:
         self.engine = self.db_connection.get_engine()
         self.metadata = MetaData()
         
-    def saving_classification_model(self,model_pickle):
+    def saving_classification_model(self, model_name,model_pickle):
         classification_model = Table('classification_model', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
             with conn.begin():
-                stmt = sa.insert(classification_model).values(model=model_pickle)
+                stmt = sa.insert(classification_model).values(model_name = model_name,model_data=model_pickle)
                 conn.execute(stmt)
         logging.debug(f"model is saved")
 
-    def get_classification_model(self):
+    def get_classification_model(self,model_name):
         classification_model = Table('classification_model', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
-            stmt = sa.select(classification_model.c.model)
+            stmt = sa.select(classification_model.c.model_data).where(classification_model.c.model_name == model_name)
             result = conn.execute(stmt)
             return result.fetchone()
