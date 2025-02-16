@@ -198,7 +198,7 @@ def saving_clustered_comment_bert_embeding():
         reviews = db.get_all_pre_processed_comments()
         logging.debug("end for getting all pre processed comments")
         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
-        batch_size_cluster = 50000
+        batch_size_cluster = 100
         for start in range(50000,len(reviews),batch_size_cluster):
             end = min(start+batch_size_cluster,len(reviews))
             reviews = reviews.iloc[start:end]
@@ -308,23 +308,31 @@ def creating_mlp_classification_models():
         return jsonify({"error": str(e)}), 500
     
 
-@blueprint.route("/api/v1/comment_classifier_predictor/", methods=['POST'])
-def comment_classifier_predictor():
+@blueprint.route("/api/v1/comment_classifier_predictor/<row_id>", methods=['POST'])
+def comment_classifier_predictor(row_id):
     try:
+        row_id = int(row_id)
         db_classification = ClassificationModelRepository()
-        model_pickle = db_classification.get_classification_model(model_name='DNN_Classifier')
+        model_row = db_classification.get_classification_model(model_name='DNN_Classifier')
 
+        # Extract the bytes data from the Row object
+        model_pickle = model_row[0] 
         ######TODO: have to send the comment data from rest but now, calling from database###
         db_cluster = ClusteredCommentRepository()
-        data = db_cluster.get_specific_comment_data(row_id=1)
-        data = pd.DataFrame(data, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        data = db_cluster.get_specific_comment_data(row_id)
         
-        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if 
+        # Wrap the single row tuple in a list before creating the DataFrame
+        data = pd.DataFrame([data], columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Ensure all vectorized comments have the same shape
+        max_length = max(len(np.fromstring(vc.strip('[]'), sep=' ')) for vc in data['vectorized_comment'])
+        vectorized_comments = [scipy.sparse.csr_matrix(np.pad(np.fromstring(vc.strip('[]'), sep=' '), 
+                               (0, max_length - len(np.fromstring(vc.strip('[]'), sep=' '))))) if 
                                isinstance(vc, str) else vc for vc in data['vectorized_comment']]
         vectorized_comments = scipy.sparse.vstack(vectorized_comments)
 
         predictor = ClassifierPredictorService()
-        predict = predictor.predict(model_pickle, vectorized_comments)
+        predict = int(np.argmax(predictor.predict(model_pickle, vectorized_comments)))
 
         return jsonify({"prediction": predict}), 200
     except Exception as e:
