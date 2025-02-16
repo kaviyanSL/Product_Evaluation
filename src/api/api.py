@@ -179,7 +179,7 @@ def creating_classification_models():
         logging.info("scipy.sparse.vstack(vectorized_comments) is done")
         
         clf = ClassificationModelService()
-        model_pickle = clf.DNN_Classifier(vectorized_comments, result['cluster'])
+        model_pickle = clf.DNN_Classifier_old(vectorized_comments, result['cluster'])
         
         db_classification = ClassificationModelRepository()
         db_classification.saving_classification_model(model_pickle)
@@ -279,3 +279,46 @@ def creating_BERT_classification_models():
     except Exception as e:
         logging.error("Error during model creation", exc_info=True)
         return jsonify({"error": str(e)}), 500
+    
+@blueprint.route("/api/v1/creating_mlp_classification_model/", methods=['POST'])
+def creating_mlp_classification_models():
+    try:
+        db_cluster = ClusteredCommentRepository()
+        result = db_cluster.get_all_clustered_comments()
+        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Log the first few entries to inspect the data
+        logging.debug(f"DataFrame head: {result.head()}")
+
+        # Ensure vectorized_comments are in the correct format
+        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if isinstance(vc, str) else vc for vc in result['vectorized_comment']]
+        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        logging.info("scipy.sparse.vstack(vectorized_comments) is done")
+        
+        clf = ClassificationModelService()
+        model_pickle = clf.dnn_classifier(vectorized_comments, result['cluster'])
+        
+        db_classification = ClassificationModelRepository()
+        db_classification.saving_classification_model(model_name = 'DNN_Classifier',model_pickle = model_pickle)
+        
+        return jsonify({"classification model is created"}), 200
+    except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+
+@blueprint.route("/api/v1/comment_classifier_predictor/", methods=['GET'])
+def comment_classifier_predictor():
+    try:
+        db_classification = ClassificationModelRepository()
+        db_classification.get_classification_model(model_name = 'DNN_Classifier')
+        
+        
+        return jsonify({"classification model is created"}), 200
+    except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+    
+
+
