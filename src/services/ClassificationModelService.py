@@ -262,6 +262,6 @@ class ClassificationModelService():
         logging.info(f"Evaluation results: {eval_result}")
 
         # Serialize the model using pickle
-        model_pickle = pickle.dumps(model)
-
-        return model_pickle
+        model_path = "models/bert_model.pth"
+        torch.save(model.state_dict,model_path)
+        logging.info(f"saving model is done")

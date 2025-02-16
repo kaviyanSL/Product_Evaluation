@@ -31,7 +31,7 @@ class TextPreProcessorService():
             comment = self.lower_case(comment)
             comment = self.remove_punctuation(comment)
             comment = self.remove_stopwords(comment)
-            comment = self.lemmatize(comment)
+            # comment = self.lemmatize(comment)
             #logging.debug(f"comment is lemmatize {comment[:20]}")
             return comment
         except Exception as e:
