@@ -263,5 +263,6 @@ class ClassificationModelService():
 
         # Serialize the model using pickle
         model_pickle = pickle.dumps(model)
+        logging.info(f"pickeling is done")
 
         return model_pickle
