@@ -12,6 +12,15 @@ class NLPBasedModelsService():
         self.bert_tokenizer_model = BertTokenizer.from_pretrained('bert-base-uncased')
         self.bert_model = TFBertModel.from_pretrained('bert-base-uncased')
 
+        physical_devices = tf.config.list_physical_devices('GPU')
+        if physical_devices:
+            try:
+                tf.config.experimental.set_memory_growth(physical_devices[0], True)
+                logging.info("GPU is available and will be used for BERT embeddings.")
+            except RuntimeError as e:
+                logging.error(f"Error setting up GPU: {e}")
+
+
         # Ensure TensorFlow uses GPU if available
         physical_devices = tf.config.list_physical_devices('GPU')
         if physical_devices:
