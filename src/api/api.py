@@ -12,6 +12,7 @@ from src.database.ClassificationModelRepository import ClassificationModelReposi
 from src.services.ClassificationModelService import ClassificationModelService
 from src.services.ClassifierPredictorService import ClassifierPredictorService
 import scipy.sparse
+import torch
 import re
 import logging
 import pandas as pd
@@ -198,7 +199,7 @@ def saving_clustered_comment_bert_embeding():
         reviews = db.get_all_pre_processed_comments()
         logging.debug("end for getting all pre processed comments")
         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
-        batch_size_cluster = 500000
+        batch_size_cluster = 1000
         for start in range(0,len(reviews),batch_size_cluster):
             end = min(start+batch_size_cluster,len(reviews))
             reviews = reviews.iloc[start:end]
@@ -300,10 +301,10 @@ def creating_BERT_classification_models():
 
 
         clf = ClassificationModelService()
-        model_pickle = clf.bert_vector_classifier_v2(result['comment'].to_list(), result['cluster'])
+        clf.bert_vector_classifier_v2(result['comment'].to_list(), result['cluster'])
         
         db_classification = ClassificationModelRepository()
-        db_classification.saving_classification_model(model_name = 'BERT_Classifier',model_pickle = model_pickle)
+        db_classification.saving_classification_model(model_name = 'BERT_Classifier',model_pickle = "models/bert_model.pth")
         
         return jsonify({"classification model is created"}), 200
     except Exception as e:
