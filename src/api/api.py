@@ -198,7 +198,7 @@ def saving_clustered_comment_bert_embeding():
         reviews = db.get_all_pre_processed_comments()
         logging.debug("end for getting all pre processed comments")
         reviews = pd.DataFrame(reviews, columns=['id', 'comment'])
-        batch_size_cluster = 50000
+        batch_size_cluster = 100
         for start in range(50000,len(reviews),batch_size_cluster):
             end = min(start+batch_size_cluster,len(reviews))
             reviews = reviews.iloc[start:end]
@@ -253,33 +253,6 @@ def saving_clustered_comment_bert_embeding():
         logging.error("Error during clustering", exc_info=True)
         return jsonify({"error": str(e)}), 500
     
-
-    
-@blueprint.route("/api/v1/creating_BERT_classification_model/", methods=['POST'])
-def creating_BERT_classification_models():
-    try:
-        db_cluster = ClusteredCommentRepository()
-        result = db_cluster.get_all_clustered_comments()
-        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
-        
-        # Log the first few entries to inspect the data
-        logging.debug(f"DataFrame head: {result.head()}")
-
-        # Ensure vectorized_comments are in the correct format
-        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if isinstance(vc, str) else vc for vc in result['vectorized_comment']]
-        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
-        logging.info("scipy.sparse.vstack(vectorized_comments) is done")
-        
-        clf = ClassificationModelService()
-        model_pickle = clf.bert_classifier(vectorized_comments, result['cluster'])
-        
-        db_classification = ClassificationModelRepository()
-        db_classification.saving_classification_model(model_pickle)
-        
-        return jsonify({"classification model is created"}), 200
-    except Exception as e:
-        logging.error("Error during model creation", exc_info=True)
-        return jsonify({"error": str(e)}), 500
     
 @blueprint.route("/api/v1/creating_mlp_classification_model/", methods=['POST'])
 def creating_mlp_classification_models():
@@ -307,24 +280,62 @@ def creating_mlp_classification_models():
         logging.error("Error during model creation", exc_info=True)
         return jsonify({"error": str(e)}), 500
     
-
-@blueprint.route("/api/v1/comment_classifier_predictor/", methods=['POST'])
-def comment_classifier_predictor():
+@blueprint.route("/api/v1/creating_BERT_classification_model/", methods=['POST'])
+def creating_BERT_classification_models():
     try:
-        db_classification = ClassificationModelRepository()
-        model_pickle = db_classification.get_classification_model(model_name='DNN_Classifier')
+        db_cluster = ClusteredCommentRepository()
+        result = db_cluster.get_all_clustered_comments()
+        result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Log the first few entries to inspect the data
+        logging.debug(f"DataFrame head: {result.head()}")
 
+        # Ensure vectorized_comments are in the correct format
+        # vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if isinstance(vc, str) else vc for vc in result['vectorized_comment']]
+        # vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        # logging.info("scipy.sparse.vstack(vectorized_comments) is done")
+        
+        # clf = ClassificationModelService()
+        # model_pickle = clf.bert_vector_classifier_v2(vectorized_comments, result['cluster'])
+
+
+        clf = ClassificationModelService()
+        model_pickle = clf.bert_vector_classifier_v2(result['comment'].to_list(), result['cluster'])
+        
+        db_classification = ClassificationModelRepository()
+        db_classification.saving_classification_model(model_name = 'BERT_Classifier',model_pickle = model_pickle)
+        
+        return jsonify({"classification model is created"}), 200
+    except Exception as e:
+        logging.error("Error during model creation", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+
+@blueprint.route("/api/v1/comment_classifier_predictor/<row_id>", methods=['POST'])
+def comment_classifier_predictor(row_id):
+    try:
+        row_id = int(row_id)
+        db_classification = ClassificationModelRepository()
+        model_row = db_classification.get_classification_model(model_name='DNN_Classifier')
+
+        # Extract the bytes data from the Row object
+        model_pickle = model_row[0] 
         ######TODO: have to send the comment data from rest but now, calling from database###
         db_cluster = ClusteredCommentRepository()
-        data = db_cluster.get_specific_comment_data(row_id=1)
-        data = pd.DataFrame(data, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        data = db_cluster.get_specific_comment_data(row_id)
         
-        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if 
+        # Wrap the single row tuple in a list before creating the DataFrame
+        data = pd.DataFrame([data], columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
+        
+        # Ensure all vectorized comments have the same shape
+        max_length = max(len(np.fromstring(vc.strip('[]'), sep=' ')) for vc in data['vectorized_comment'])
+        vectorized_comments = [scipy.sparse.csr_matrix(np.pad(np.fromstring(vc.strip('[]'), sep=' '), 
+                               (0, max_length - len(np.fromstring(vc.strip('[]'), sep=' '))))) if 
                                isinstance(vc, str) else vc for vc in data['vectorized_comment']]
         vectorized_comments = scipy.sparse.vstack(vectorized_comments)
 
         predictor = ClassifierPredictorService()
-        predict = predictor.predict(model_pickle, vectorized_comments)
+        predict = int(np.argmax(predictor.predict(model_pickle, vectorized_comments)))
 
         return jsonify({"prediction": predict}), 200
     except Exception as e:
