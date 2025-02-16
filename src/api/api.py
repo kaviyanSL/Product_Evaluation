@@ -10,6 +10,7 @@ from src.services.LanguageDetectionService import LanguageDetectionService
 from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPreprocessText
 from src.database.ClassificationModelRepository import ClassificationModelRepository
 from src.services.ClassificationModelService import ClassificationModelService
+from src.services.ClassifierPredictorService import ClassifierPredictorService
 import scipy.sparse
 import re
 import logging
@@ -307,18 +308,29 @@ def creating_mlp_classification_models():
         return jsonify({"error": str(e)}), 500
     
 
-@blueprint.route("/api/v1/comment_classifier_predictor/", methods=['GET'])
+@blueprint.route("/api/v1/comment_classifier_predictor/", methods=['POST'])
 def comment_classifier_predictor():
     try:
         db_classification = ClassificationModelRepository()
-        db_classification.get_classification_model(model_name = 'DNN_Classifier')
+        model_pickle = db_classification.get_classification_model(model_name='DNN_Classifier')
+
+        ######TODO: have to send the comment data from rest but now, calling from database###
+        db_cluster = ClusteredCommentRepository()
+        data = db_cluster.get_specific_comment_data(row_id=1)
+        data = pd.DataFrame(data, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment'])
         
-        
-        return jsonify({"classification model is created"}), 200
+        vectorized_comments = [scipy.sparse.csr_matrix(np.fromstring(vc.strip('[]'), sep=' ')) if 
+                               isinstance(vc, str) else vc for vc in data['vectorized_comment']]
+        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+
+        predictor = ClassifierPredictorService()
+        predict = predictor.predict(model_pickle, vectorized_comments)
+
+        return jsonify({"prediction": predict}), 200
     except Exception as e:
-        logging.error("Error during model creation", exc_info=True)
+        logging.error("Error during prediction", exc_info=True)
         return jsonify({"error": str(e)}), 500
-    
-    
+
+
 
 

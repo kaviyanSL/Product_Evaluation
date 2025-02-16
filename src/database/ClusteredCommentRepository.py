@@ -25,4 +25,11 @@ class ClusteredCommentRepository:
             stmt = sa.select(clustered_comment_table)
             result = conn.execute(stmt)
             return result.fetchall()
+        
+    def get_specific_comment_data(self,row_id):
+        clustered_comment_table = Table('clustered_comment', self.metadata, autoload_with=self.engine)
+        with self.engine.connect() as conn:
+            stmt = sa.select(clustered_comment_table).where(clustered_comment_table.c.id == row_id)
+            result = conn.execute(stmt)
+            return result.fetchone()
             
