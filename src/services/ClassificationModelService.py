@@ -2,6 +2,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.neural_network import MLPClassifier
 import tensorflow as tf
+import scipy
 import torch
 from transformers import BertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments
 import numpy as np
@@ -206,5 +207,63 @@ class ClassificationModelService():
         model_pickle = pickle.dumps(model)
         
         return model_pickle
+    
+    
+    
+    def bert_vector_classifier_v2(self, raw_texts, target):
+        # Check if a GPU is available and use it
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logging.info(f"Using device: {device}")
 
+        # Load pre-trained BERT tokenizer and model for sequence classification
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=len(np.unique(target)))
+        model.to(device)  # Move the model to the GPU if available
 
+        # Tokenize the raw texts
+        encodings = tokenizer(raw_texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
+
+        # Convert target labels to tensor
+        labels = torch.tensor(target, dtype=torch.long)
+
+        # Split data into training and testing sets
+        train_inputs, test_inputs, train_labels, test_labels = train_test_split(
+            encodings["input_ids"], labels, test_size=0.2, random_state=42
+        )
+
+        # Create dataset objects
+        train_dataset = Dataset.from_dict({"input_ids": train_inputs.tolist(), "labels": train_labels.tolist()})
+        test_dataset = Dataset.from_dict({"input_ids": test_inputs.tolist(), "labels": test_labels.tolist()})
+
+        # Define training arguments
+        training_args = TrainingArguments(
+            output_dir='./results',
+            num_train_epochs=3,
+            per_device_train_batch_size=8,
+            per_device_eval_batch_size=8,
+            warmup_steps=500,
+            weight_decay=0.01,
+            logging_dir='./logs',
+            fp16=True,  # Enable mixed precision training
+            gradient_accumulation_steps=2,  # Simulate larger batch size
+        )
+
+        # Create Trainer instance
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=test_dataset,
+        )
+
+        # Train the model
+        trainer.train()
+
+        # Evaluate the model
+        eval_result = trainer.evaluate()
+        logging.info(f"Evaluation results: {eval_result}")
+
+        # Serialize the model using pickle
+        model_pickle = pickle.dumps(model)
+
+        return model_pickle
