@@ -26,8 +26,6 @@ class ClassificationModelService():
         #         logging.error(f"Error setting up GPU: {e}")
 
 
-        # Force TensorFlow to use CPU only
-        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
         # Split the data into training and testing sets
         X_train, X_test, y_train, y_test = train_test_split(data, target, test_size=0.2, random_state=42)
