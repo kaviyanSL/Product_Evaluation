@@ -317,10 +317,9 @@ def comment_classifier_predictor(row_id):
     try:
         row_id = int(row_id)
         db_classification = ClassificationModelRepository()
-        model_row = db_classification.get_classification_model(model_name='DNN_Classifier')
+        db_classification.get_classification_model(model_name='BERT_Classifier')
 
         # Extract the bytes data from the Row object
-        model_pickle = model_row[0] 
         ######TODO: have to send the comment data from rest but now, calling from database###
         db_cluster = ClusteredCommentRepository()
         data = db_cluster.get_specific_comment_data(row_id)

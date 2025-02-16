@@ -28,4 +28,8 @@ class ClassificationModelRepository:
         with self.engine.connect() as conn:
             stmt = sa.select(classification_model.c.model_data).where(classification_model.c.model_name == model_name)
             result = conn.execute(stmt)
-            return result.fetchone()
+
+            model_path = "models/loaded_model.pth"
+            with open(model_path, "wb") as f:
+                f.write(result)
+            
