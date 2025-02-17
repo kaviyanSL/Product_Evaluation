@@ -204,24 +204,13 @@ def comment_classifier_predictor(row_id):
             return jsonify({"error": "Comment not found"}), 404
 
         # Convert tuple to DataFrame
-        df = pd.DataFrame([data], columns=["id", "comment", "cluster", "insert_date", "vectorized_comment"])
+        df = pd.DataFrame([data], columns=["id", "comment", "cluster", "insert_date", "vectorized_comment","website"])
 
-        # Convert stored vectorized comment from string to numpy array
-        vectorized_comments = [
-            np.fromstring(vc.strip("[]"), sep=" ") if isinstance(vc, str) else vc 
-            for vc in df["vectorized_comment"]
-        ]
-
-        # Ensure uniform shape by padding shorter arrays
-        max_length = max(map(len, vectorized_comments))
-        vectorized_comments = [
-            scipy.sparse.csr_matrix(np.pad(vc, (0, max_length - len(vc)))) for vc in vectorized_comments
-        ]
-        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        comments = df['comment'].tolist()
 
         # Run prediction
         predictor = ClassifierPredictorService(model_path)
-        prediction = predictor.predict(vectorized_comments)[0]
+        prediction = predictor.predict(comments)[0]
 
         logging.info(f"Prediction result: {prediction}")
         return jsonify({"prediction": int(prediction)}), 200
