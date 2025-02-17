@@ -146,6 +146,12 @@ def creating_BERT_classification_models():
         db_cluster = ClusteredCommentRepository()
         result = db_cluster.get_all_clustered_comments()
         result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment', 'website'])
+        train_data = result.sample(frac=0.95, random_state=42) 
+        test_data = result.drop(train_data.index)  
+
+        # Save the 5% data to CSV
+        test_data.to_csv("remaining_5_percent.csv", index=False)
+        result = train_data
 
         logging.debug(f"DataFrame head: {result.head()}")
 
