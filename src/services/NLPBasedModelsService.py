@@ -8,12 +8,13 @@ import tensorflow as tf
 import torch
 
 class NLPBasedModelsService():
-    def __init__(self, reviews):
+    def __init__(self, reviews,website):
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info(f"Using device: {device}")
 
         self.reviews = reviews
+        self.website = website
         self.bert_tokenizer_model = BertTokenizer.from_pretrained('bert-base-uncased')
         self.bert_model = TFBertModel.from_pretrained('bert-base-uncased')
 
