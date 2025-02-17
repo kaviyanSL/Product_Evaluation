@@ -89,7 +89,7 @@ class MultiprocessPreprocessText:
                         if not pd.isna(lemmatized_comment):
                             lemmatize_comment_list.append((batch.index[idx], lemmatized_comment))
                             #logging.debug(f"Prepared update for comment ID {batch.index[idx]} to {lemmatized_comment}")
-                    self.update_lemmatize(lemmatize_comment_list)
+                    self.update_lemmatize(lemmatize_comment_list,batch['website'][0])
                     logging.info(f"end time {datetime.datetime.now()} ")
             except Exception as e:
                 logging.error("Error during multiprocessing text lemmatization", exc_info=True)

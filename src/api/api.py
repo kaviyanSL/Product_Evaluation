@@ -145,7 +145,7 @@ def update_lemmatize_multiprocessor():
     try:
         db = RawCommentRepository()
         text = db.get_all_raw_comments()
-        text = pd.DataFrame(text, columns=['id','comment'])
+        text = pd.DataFrame(text, columns=['id','comment','website'])
         # text.set_index('id', inplace=True)
 
         multi_lang = MultiprocessPreprocessText()

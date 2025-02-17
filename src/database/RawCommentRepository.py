@@ -22,7 +22,7 @@ class RawCommentRepository:
     def get_all_raw_comments(self):
         raw_comments_table = Table('raw_comments_amazon', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
-            stmt = sa.select(raw_comments_table.c.id,raw_comments_table.c.text).where(
+            stmt = sa.select(raw_comments_table.c.id,raw_comments_table.c.text,raw_comments_table.c.website).where(
                             raw_comments_table.c.language == 'en').order_by(
                             raw_comments_table.c.id)
 
