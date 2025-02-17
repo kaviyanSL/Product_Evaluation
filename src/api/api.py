@@ -302,7 +302,7 @@ def creating_BERT_classification_models():
 
 
         clf = ClassificationModelService()
-        clf.bert_vector_classifier_v2(result['comment'].to_list(), result['cluster'])
+        clf.bert_classifier(result['comment'].to_list(), result['cluster'])
         
         db_classification = ClassificationModelRepository()
         db_classification.saving_classification_model(model_name = 'BERT_Classifier',model_pickle = "models/bert_model.pth", website = result['website'][0])

@@ -1,67 +1,61 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
-from transformers import BertTokenizer, TFBertModel
+from transformers import BertTokenizer, BertModel
 import logging
 from tqdm import tqdm
 import time
 import numpy as np
-import tensorflow as tf
 import torch
 
-class NLPBasedModelsService():
-    def __init__(self, reviews,website):
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logging.info(f"Using device: {device}")
+class NLPBasedModelsService:
+    def __init__(self, reviews, website):
+        # Set up GPU usage
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logging.info(f"Using device: {self.device}")
 
         self.reviews = reviews
         self.website = website
+
+        # Load BERT tokenizer and model
         self.bert_tokenizer_model = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.bert_model = TFBertModel.from_pretrained('bert-base-uncased')
-
-        physical_devices = tf.config.list_physical_devices('GPU')
-        if physical_devices:
-            try:
-                tf.config.experimental.set_memory_growth(physical_devices[0], True)
-                logging.info("GPU is available and will be used for BERT embeddings.")
-            except RuntimeError as e:
-                logging.error(f"Error setting up GPU: {e}")
-
-
-        # Ensure TensorFlow uses GPU if available
-        physical_devices = tf.config.list_physical_devices('GPU')
-        if physical_devices:
-            try:
-                tf.config.experimental.set_memory_growth(physical_devices[0], True)
-                logging.info("GPU is available and will be used for BERT embeddings.")
-            except RuntimeError as e:
-                logging.error(f"Error setting up GPU: {e}")
+        self.bert_model = BertModel.from_pretrained('bert-base-uncased').to(self.device)  # Move model to GPU
 
     def vectorize_reviews(self):
+        """Vectorize reviews using TF-IDF (runs on CPU)"""
         vectorizer = TfidfVectorizer()
-        vectorize_reviews = vectorizer.fit_transform(self.reviews)
-        logging.debug(f"vectorize_reviews completed")
-        return vectorize_reviews
+        vectorized_reviews = vectorizer.fit_transform(self.reviews)
+        logging.debug("vectorize_reviews completed")
+        return vectorized_reviews
 
     def bert_tokenizer(self, reviews):
+        """Tokenize reviews using BERT tokenizer"""
         start_time = time.time()
         tokenized_reviews = []
+        
         for review in tqdm(reviews, desc="Tokenizing reviews"):
-            tokenized_review = self.bert_tokenizer_model(review, padding=True, truncation=True, return_tensors='tf')
+            tokenized_review = self.bert_tokenizer_model(
+                review, padding=True, truncation=True, return_tensors='pt'  # Use PyTorch tensors
+            ).to(self.device)  # Move to GPU
             tokenized_reviews.append(tokenized_review)
+        
         end_time = time.time()
         logging.debug(f"bert_tokenizer completed in {end_time - start_time:.2f} seconds")
         return tokenized_reviews
 
     def bert_embedding(self, reviews):
+        """Generate BERT embeddings on GPU"""
         start_time = time.time()
-        tokenized_reviews = self.bert_tokenizer(reviews)
+        tokenized_reviews = self.bert_tokenizer(reviews)  # Tokenize input
+
         embeddings = []
         for tokenized_review in tqdm(tokenized_reviews, desc="Generating BERT embeddings"):
-            bert_output = self.bert_model(**tokenized_review)
-            # Extract the [CLS] token's embeddings
-            cls_embeddings = bert_output.last_hidden_state[:, 0, :].numpy()
+            with torch.no_grad():  # No gradient computation (faster inference)
+                bert_output = self.bert_model(**tokenized_review)  # Forward pass
+                cls_embeddings = bert_output.last_hidden_state[:, 0, :].to('cpu').numpy()  # Move to CPU for numpy
+                
             embeddings.append(cls_embeddings)
-        embeddings = np.vstack(embeddings)
+
+        embeddings = np.vstack(embeddings)  # Stack all embeddings
         end_time = time.time()
         logging.debug(f"bert_embedding completed in {end_time - start_time:.2f} seconds")
+        
         return embeddings
