@@ -27,12 +27,12 @@ class PreProcessCommentsrepository:
             result = conn.execute(stmt)
             return result.fetchall()
         
-    def bulk_update_lemmatize(self, bulk_update_lemmatize_comment):
+    def bulk_update_lemmatize(self, bulk_update_lemmatize_comment,website):
         pre_process_comments_table = Table('pre_process_comments', self.metadata, autoload_with=self.engine)
         with self.engine.connect() as conn:
             with conn.begin():  # Begin a transaction
                 for comment_id, reviews in bulk_update_lemmatize_comment:
-                    stmt = sa.insert(pre_process_comments_table).values(id = int(comment_id), comment = reviews)
+                    stmt = sa.insert(pre_process_comments_table).values(id = int(comment_id), comment = reviews,website = website)
                     conn.execute(stmt)
                     #logging.debug(f"insert {int(comment_id)} with {reviews}")
             
