@@ -150,7 +150,7 @@ def creating_BERT_classification_models():
         test_data = result.drop(train_data.index)  
 
         # Save the 5% data to CSV
-        test_data.to_csv("remaining_5_percent.csv", index=False)
+        test_data.to_csv("./test_dataset/remaining_5_percent.csv", index=False)
         result = train_data
 
         logging.debug(f"DataFrame head: {result.head()}")
