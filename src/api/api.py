@@ -19,6 +19,7 @@ import pandas as pd
 import ast
 import json
 import numpy as np
+import os
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 blueprint = Blueprint('product_eval', __name__)
