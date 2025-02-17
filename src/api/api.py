@@ -19,6 +19,7 @@ import pandas as pd
 import ast
 import json
 import numpy as np
+import os
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 blueprint = Blueprint('product_eval', __name__)
@@ -145,6 +146,12 @@ def creating_BERT_classification_models():
         db_cluster = ClusteredCommentRepository()
         result = db_cluster.get_all_clustered_comments()
         result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment', 'website'])
+        train_data = result.sample(frac=0.95, random_state=42) 
+        test_data = result.drop(train_data.index)  
+
+        # Save the 5% data to CSV
+        test_data.to_csv("./test_dataset/remaining_5_percent.csv", index=False)
+        result = train_data
 
         logging.debug(f"DataFrame head: {result.head()}")
 
@@ -197,24 +204,13 @@ def comment_classifier_predictor(row_id):
             return jsonify({"error": "Comment not found"}), 404
 
         # Convert tuple to DataFrame
-        df = pd.DataFrame([data], columns=["id", "comment", "cluster", "insert_date", "vectorized_comment"])
+        df = pd.DataFrame([data], columns=["id", "comment", "cluster", "insert_date", "vectorized_comment","website"])
 
-        # Convert stored vectorized comment from string to numpy array
-        vectorized_comments = [
-            np.fromstring(vc.strip("[]"), sep=" ") if isinstance(vc, str) else vc 
-            for vc in df["vectorized_comment"]
-        ]
-
-        # Ensure uniform shape by padding shorter arrays
-        max_length = max(map(len, vectorized_comments))
-        vectorized_comments = [
-            scipy.sparse.csr_matrix(np.pad(vc, (0, max_length - len(vc)))) for vc in vectorized_comments
-        ]
-        vectorized_comments = scipy.sparse.vstack(vectorized_comments)
+        comments = df['comment'].tolist()
 
         # Run prediction
         predictor = ClassifierPredictorService(model_path)
-        prediction = predictor.predict(vectorized_comments)[0]
+        prediction = predictor.predict(comments)[0]
 
         logging.info(f"Prediction result: {prediction}")
         return jsonify({"prediction": int(prediction)}), 200
