@@ -10,7 +10,7 @@ class DBConnection:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(DBConnection, cls).__new__(cls)
-            cls._engine = create_engine("mysql+pymysql://root:root@localhost:3307/product_db",
+            cls._engine = create_engine("mysql+pymysql://root:root@localhost:3306/product_db",
                                         pool_size=200,          
                                         max_overflow=20,       
                                         pool_timeout=30,       
