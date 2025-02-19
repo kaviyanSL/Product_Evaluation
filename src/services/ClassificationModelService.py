@@ -17,7 +17,6 @@ class ClassificationModelService:
         logging.info(f"Using device: {self.device}")
 
     def bert_classifier(self, raw_texts, target):
-        os.environ["WANDB_DISABLED"] = "true"
 
         """Train a BERT-based classifier on GPU"""
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
