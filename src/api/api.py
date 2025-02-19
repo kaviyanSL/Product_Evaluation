@@ -167,7 +167,6 @@ def creating_BERT_classification_models():
             logging.error(f"Model file not found: {model_path}")
             return jsonify({"error": "Model saving failed"}), 500
 
-        torch.save(clf.model.state_dict(), model_path)
         # Open and read model binary
         with open(model_path, "rb") as f:
             model_binary = f.read()
