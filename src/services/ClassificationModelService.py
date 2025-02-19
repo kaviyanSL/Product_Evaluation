@@ -19,9 +19,7 @@ class ClassificationModelService:
     def bert_classifier(self, raw_texts, target):
         """Train a BERT-based classifier on GPU"""
         
-        # Subset for faster testing
-        raw_texts = raw_texts[:100]
-        target = target[:100]
+
         
         # Convert labels to integers
         label_encoder = LabelEncoder()
