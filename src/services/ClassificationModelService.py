@@ -16,52 +16,9 @@ class ClassificationModelService:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info(f"Using device: {self.device}")
 
-    def mlp_classifier(self, data, target):
-        """Train an MLP model on GPU"""
-        X_train, X_test, y_train, y_test = train_test_split(data.toarray(), target, test_size=0.2, random_state=42)
-
-        # Convert data to tensors and move to GPU
-        X_train, X_test = torch.tensor(X_train, dtype=torch.float32).to(self.device), torch.tensor(X_test, dtype=torch.float32).to(self.device)
-        y_train, y_test = torch.tensor(y_train, dtype=torch.long).to(self.device), torch.tensor(y_test, dtype=torch.long).to(self.device)
-
-        # Define MLP architecture
-        model = torch.nn.Sequential(
-            torch.nn.Linear(X_train.shape[1], 512),
-            torch.nn.ReLU(),
-            torch.nn.Linear(512, 256),
-            torch.nn.ReLU(),
-            torch.nn.Linear(256, len(np.unique(target))),
-            torch.nn.Softmax(dim=1)
-        ).to(self.device)
-
-        # Define loss function and optimizer
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-        # Training loop
-        model.train()
-        for epoch in range(3):
-            optimizer.zero_grad()
-            outputs = model(X_train)
-            loss = criterion(outputs, y_train)
-            loss.backward()
-            optimizer.step()
-
-            logging.info(f"Epoch {epoch+1}, Loss: {loss.item()}")
-
-        # Evaluation
-        model.eval()
-        with torch.no_grad():
-            y_pred = model(X_test).argmax(dim=1)
-
-        accuracy = accuracy_score(y_test.cpu(), y_pred.cpu())
-        logging.info(f"Model Accuracy: {accuracy}")
-
-        # Serialize model
-        model_pickle = pickle.dumps(model)
-        return model_pickle
-
     def bert_classifier(self, raw_texts, target):
+        os.environ["WANDB_DISABLED"] = "true"
+
         """Train a BERT-based classifier on GPU"""
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=len(np.unique(target))).to(self.device)
@@ -72,9 +29,8 @@ class ClassificationModelService:
         logging.info(f"model tokenized")
         input_ids = encodings["input_ids"].to(self.device)
         labels = torch.tensor(target, dtype=torch.long).to(self.device)
-
-        # Split data
         logging.info(f"try to train test spilit")
+        # Split data
         train_inputs, test_inputs, train_labels, test_labels = train_test_split(input_ids, labels, test_size=0.2, random_state=42)
 
         # Convert to Hugging Face Dataset
@@ -102,7 +58,7 @@ class ClassificationModelService:
         )
         logging.info(f"training is begined")
         trainer.train()
-        logging.info(f"training is done")
+        logging.info(f"training is ended")
 
         # Evaluate model
         logging.info(f"try to eval trainer")
@@ -110,7 +66,7 @@ class ClassificationModelService:
         logging.info(f"Evaluation results: {eval_result}")
 
         # Save model
-        model_path = "bert_model.pth"
+        model_path = "/models/bert_model.pth"
         torch.save(model.state_dict(), model_path)
         logging.info(f"Model saved at {model_path}")
 
