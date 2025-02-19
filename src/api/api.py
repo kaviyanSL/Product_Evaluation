@@ -143,14 +143,18 @@ def saving_clustered_comment_bert_embeding():
 @blueprint.route("/api/v1/creating_BERT_classification_model/", methods=['POST'])
 def creating_BERT_classification_models():
     try:
+        logging.info(f"ty connecting to db")
         db_cluster = ClusteredCommentRepository()
         result = db_cluster.get_all_clustered_comments()
+        logging.info(f"data is red from db")
         result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment', 'website'])
         train_data = result.sample(frac=0.95, random_state=42) 
         test_data = result.drop(train_data.index)  
+        logging.info(f"dataframe created")
 
         # Save the 5% data to CSV
         test_data.to_csv("./test_dataset/remaining_5_percent.csv", index=False)
+        logging.info(f"test dataset is saved")
         result = train_data
 
         logging.debug(f"DataFrame head: {result.head()}")
@@ -167,7 +171,6 @@ def creating_BERT_classification_models():
             logging.error(f"Model file not found: {model_path}")
             return jsonify({"error": "Model saving failed"}), 500
 
-        torch.save(clf.model.state_dict(), model_path)
         # Open and read model binary
         with open(model_path, "rb") as f:
             model_binary = f.read()

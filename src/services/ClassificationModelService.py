@@ -67,11 +67,14 @@ class ClassificationModelService:
         model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=len(np.unique(target))).to(self.device)
 
         # Tokenize text and move tensors to GPU
+        logging.info(f"try to tokenize text")
         encodings = tokenizer(raw_texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
+        logging.info(f"model tokenized")
         input_ids = encodings["input_ids"].to(self.device)
         labels = torch.tensor(target, dtype=torch.long).to(self.device)
 
         # Split data
+        logging.info(f"try to train test spilit")
         train_inputs, test_inputs, train_labels, test_labels = train_test_split(input_ids, labels, test_size=0.2, random_state=42)
 
         # Convert to Hugging Face Dataset
@@ -97,9 +100,12 @@ class ClassificationModelService:
             train_dataset=train_dataset,
             eval_dataset=test_dataset,
         )
+        logging.info(f"training is begined")
         trainer.train()
+        logging.info(f"training is done")
 
         # Evaluate model
+        logging.info(f"try to eval trainer")
         eval_result = trainer.evaluate()
         logging.info(f"Evaluation results: {eval_result}")
 
