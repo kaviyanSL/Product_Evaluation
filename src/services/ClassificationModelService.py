@@ -1,13 +1,13 @@
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import torch
 import numpy as np
 import logging
-from datasets import Dataset
-from transformers import BertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments, AdamW
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 import gc
+from datasets import Dataset
+from transformers import BertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments
 
-# Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ClassificationModelService:
@@ -18,53 +18,44 @@ class ClassificationModelService:
 
     def bert_classifier(self, raw_texts, target):
         """Train a BERT-based classifier on GPU"""
-        
 
-        
         # Convert labels to integers
         label_encoder = LabelEncoder()
-        target = label_encoder.fit_transform(target)  # Convert string labels to integers
-        num_labels = len(np.unique(target))  # Get the number of unique labels
+        target = label_encoder.fit_transform(target)  
+        num_labels = len(np.unique(target))
 
         # Initialize tokenizer and model
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=num_labels).to(self.device)
 
         # Tokenize text and move tensors to GPU
-        logging.info(f"Starting tokenization")
+        logging.info("Starting tokenization")
         encodings = tokenizer(raw_texts, padding=True, truncation=True, max_length=512, return_tensors="pt")
-        logging.info(f"Tokenization complete")
-        
-        input_ids = encodings["input_ids"].to(self.device)
-        labels = torch.tensor(target, dtype=torch.long).to(self.device)
+        logging.info("Tokenization complete")
+
+        input_ids = encodings["input_ids"]
+        labels = torch.tensor(target, dtype=torch.long)
 
         # Split data into training and testing sets
-        logging.info(f"Splitting data into train/test sets")
+        logging.info("Splitting data into train/test sets")
         train_inputs, test_inputs, train_labels, test_labels = train_test_split(input_ids, labels, test_size=0.2, random_state=42)
 
         # Convert to Hugging Face Dataset
-        train_dataset = Dataset.from_dict({"input_ids": train_inputs.cpu().tolist(), "labels": train_labels.cpu().tolist()})
-        test_dataset = Dataset.from_dict({"input_ids": test_inputs.cpu().tolist(), "labels": test_labels.cpu().tolist()})
+        train_dataset = Dataset.from_dict({"input_ids": train_inputs.tolist(), "labels": train_labels.tolist()})
+        test_dataset = Dataset.from_dict({"input_ids": test_inputs.tolist(), "labels": test_labels.tolist()})
 
-        # Define training arguments with optimizations
+        # Define training arguments
         training_args = TrainingArguments(
             output_dir='./results',
             num_train_epochs=3,
-            per_device_train_batch_size=16,  # Increased batch size
-            per_device_eval_batch_size=16,  # Increased eval batch size
+            per_device_train_batch_size=16,  # Increase batch size if GPU allows
+            per_device_eval_batch_size=16,   # Increase batch size for faster eval
             warmup_steps=500,
             weight_decay=0.01,
             logging_dir='./logs',
             fp16=True,  # Enable mixed precision training
-            save_steps=500,  # Save model every 500 steps
-            gradient_accumulation_steps=4,  # Accumulate gradients for simulating larger batch size
-            dataloader_num_workers=4,  # Parallelize data loading
-            logging_steps=100,  # Log every 100 steps
-            evaluation_strategy='epoch',  # Evaluate at the end of each epoch
+            dataloader_num_workers=0,  # Fix multiprocessing issue on Windows
         )
-
-        # Use AdamW optimizer for better convergence
-        optimizer = AdamW(model.parameters(), lr=5e-5)
 
         # Train using Trainer API
         trainer = Trainer(
@@ -72,15 +63,14 @@ class ClassificationModelService:
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=test_dataset,
-            optimizers=(optimizer, None),
         )
 
-        logging.info(f"Training started")
+        logging.info("Training started")
         trainer.train()
-        logging.info(f"Training finished")
+        logging.info("Training finished")
 
         # Evaluate model
-        logging.info(f"Evaluating model")
+        logging.info("Evaluating model")
         eval_result = trainer.evaluate()
         logging.info(f"Evaluation results: {eval_result}")
 
@@ -89,23 +79,9 @@ class ClassificationModelService:
         torch.save(model.state_dict(), model_path)
         logging.info(f"Model saved at {model_path}")
 
-        # Clean up to free GPU and memory
-        logging.info("Cleaning up to free memory...")
-        
-        torch.cuda.empty_cache()
-
+        # Free GPU memory after training
         del model
-        del trainer
-        del train_dataset
-        del test_dataset
-        del encodings
-        del input_ids
-        del labels
-
-        gc.collect()
-
         torch.cuda.empty_cache()
-
-        logging.info("Memory cleaned up successfully.")
+        gc.collect()
 
         return model_path
