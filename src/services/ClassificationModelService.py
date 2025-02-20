@@ -7,6 +7,7 @@ import logging
 import gc
 from datasets import Dataset
 from transformers import BertForSequenceClassification, BertTokenizer, Trainer, TrainingArguments
+from mlflowrun.MLflowRun import MLflowRun
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -15,14 +16,19 @@ class ClassificationModelService:
         # Set up GPU usage
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logging.info(f"Using device: {self.device}")
+        self.mlflow_logger = MLflowRun()
 
     def bert_classifier(self, raw_texts, target):
         """Train a BERT-based classifier on GPU"""
 
+        self.mlflow_logger.start_run()
         # Convert labels to integers
         label_encoder = LabelEncoder()
         target = label_encoder.fit_transform(target)  
         num_labels = len(np.unique(target))
+
+        dataset_sample = "\n".join(raw_texts[:5])  
+        self.mlflow_logger.log_text(text = dataset_sample, artifact_file="dataset_sample.txt")
 
         # Initialize tokenizer and model
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -74,10 +80,36 @@ class ClassificationModelService:
         eval_result = trainer.evaluate()
         logging.info(f"Evaluation results: {eval_result}")
 
+        logging.info("calculating metrics is started")
+        predictions = trainer.predict(test_dataset)
+        preds = np.argmax(predictions.predictions, axis=-1)
+
+        accuracy = accuracy_score(test_labels, preds)
+        class_report = classification_report(test_labels, preds, output_dict=True)
+        conf_matrix = confusion_matrix(test_labels, preds)
+        logging.info("calculating metrics is ended")
+
+        logging.info("logging metrics is started")
+        self.mlflow_logger.log_metrics({
+            "accuracy": accuracy,
+            "precision": class_report["macro avg"]["precision"],
+            "recall": class_report["macro avg"]["recall"],
+            "f1-score": class_report["macro avg"]["f1-score"],
+        })
+        logging.info("logging metrics is ended")
+
+
+        # Log confusion matrix as text
+        conf_matrix_str = "\n".join(["\t".join(map(str, row)) for row in conf_matrix])
+        self.mlflow_logger.log_text(conf_matrix_str, "confusion_matrix.txt")
+
         # Save model
         model_path = "./models/bert_model.pth"
         torch.save(model.state_dict(), model_path)
         logging.info(f"Model saved at {model_path}")
+
+        self.mlflow_logger.end_run()
+
 
         # Free GPU memory after training
         del model
