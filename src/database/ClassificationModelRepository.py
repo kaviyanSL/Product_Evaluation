@@ -16,23 +16,16 @@ class ClassificationModelRepository:
     def saving_classification_model(self, model_name, model_data, website):
         classification_model = Table('classification_model', self.metadata, autoload_with=self.engine)
 
-        # Insert into database
-        stmt = sa.insert(classification_model).values(
-            model_name=model_name,
-            model_data=model_data,
-            website=website
-        )
-
-        # Ensure commit happens
         with self.engine.connect() as conn:
-            trans = conn.begin()
-            try:
+            with conn.begin():
+                stmt = sa.insert(classification_model).values(
+                    model_name=model_name,
+                    model_data=model_data,
+                    website=website
+                    )
                 conn.execute(stmt)
-                trans.commit()
                 logging.debug("Model saved successfully!")
-            except Exception as e:
-                trans.rollback()
-                logging.error(f"Database insert failed: {e}")
+
 
 
     def get_classification_model(self,model_name):
