@@ -13,17 +13,8 @@ class ClassificationModelRepository:
         self.metadata = MetaData()
         self.metadata.reflect(bind=self.engine)  # Ensure metadata is loaded correctly
 
-    def saving_classification_model(self, model_name, model_pickle, website):
+    def saving_classification_model(self, model_name, model_data, website):
         classification_model = Table('classification_model', self.metadata, autoload_with=self.engine)
-
-        # Check if the model file exists
-        if not os.path.exists(model_pickle):
-            logging.error(f"Model file not found: {model_pickle}")
-            return
-        
-        # Read the model file as binary data
-        with open(model_pickle, "rb") as f:
-            model_data = f.read()
 
         # Insert into database
         stmt = sa.insert(classification_model).values(

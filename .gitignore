@@ -184,3 +184,7 @@ logs/
 results/
 models/
 test_dataset/
+mlflowrun/artifacts/
+mlflowrun/text/
+mlartifacts/
+mlflow.db

@@ -146,8 +146,13 @@ def creating_BERT_classification_models():
         logging.info(f"ty connecting to db")
         db_cluster = ClusteredCommentRepository()
         result = db_cluster.get_all_clustered_comments()
+
+
         logging.info(f"data is red from db")
         result = pd.DataFrame(result, columns=['id', 'comment', 'cluster', 'insert_date', 'vectorized_comment', 'website'])
+
+        result = result.sample(n=100,random_state=42)
+
         train_data = result.sample(frac=0.95, random_state=42) 
         test_data = result.drop(train_data.index)  
         logging.info(f"dataframe created")
@@ -163,7 +168,7 @@ def creating_BERT_classification_models():
         clf = ClassificationModelService()
         
         # Get model save path
-        model_path = "models/bert_model.pth"
+        model_path = "./models/bert_model.pth"
         clf.bert_classifier(result['comment'].to_list(), result['cluster'])
 
         # Check if model file exists
@@ -179,8 +184,8 @@ def creating_BERT_classification_models():
         db_classification = ClassificationModelRepository()
         db_classification.saving_classification_model(
             model_name='BERT_Classifier',
-            model_pickle=model_binary,  # Pass binary data instead of file path
-            website=result['website'][0]
+            model_data=model_binary, 
+            website=result['website'].iloc[0]
         )
 
         return jsonify({"message": "Classification model is created successfully"}), 200
