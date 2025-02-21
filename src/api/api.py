@@ -200,11 +200,13 @@ def comment_classifier_predictor(row_id):
     try:
         logging.info(f"Processing prediction for row_id: {row_id}")
 
-        # Fetch classification model (ensure it exists)
-        db_classification = ClassificationModelRepository()
-        model_path = db_classification.get_classification_model(model_name="BERT_Classifier")
-        if not model_path:
-            return jsonify({"error": "Model not found"}), 404
+        if os.path.exists("./models/bert_model.pth"):
+            model_path = "./models/bert_model.pth"
+        else:
+            db_classification = ClassificationModelRepository()
+            model_path = db_classification.get_classification_model(model_name="BERT_Classifier")
+            if not model_path:
+                return jsonify({"error": "Model not found"}), 404
 
         # Fetch specific comment data
         db_cluster = ClusteredCommentRepository()
@@ -232,3 +234,46 @@ def comment_classifier_predictor(row_id):
         logging.error("Error during prediction", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
+
+@blueprint.route("/api/v1/agg_comment_per_product/<product_name>", methods=['GET'])
+def agg_comment_per_product(product_name):
+    try:
+        logging.info(f"Processing prediction for product: {product_name}")
+
+        if os.path.exists("./models/bert_model.pth"):
+            model_path = "./models/bert_model.pth"
+        else:
+            db_classification = ClassificationModelRepository()
+            model_path = db_classification.get_classification_model(model_name="BERT_Classifier")
+            if not model_path:
+                return jsonify({"error": "Model not found"}), 404
+
+
+        #TODO: this should be changed based on the given product. result must be the comment based on product
+        db_cluster = ClusteredCommentRepository()
+        #TODO: this result limited by 200 comment for testing the service
+        data = db_cluster.get_all_clustered_comments_200()
+        if not data:
+            return jsonify({"error": "Comment not found"}), 404
+
+        df = pd.DataFrame(data, columns=["id", "comment", "cluster", "insert_date", "vectorized_comment", "website"])
+        #TODO:remember that clear this sample
+        df = df.sample(n=1999, random_state=42) 
+
+        comments = df['comment'].tolist()
+
+        predictor = ClassifierPredictorService(model_path)
+        prediction_counts = predictor.predict_list(comments)
+        #prediction_counts = {int(k): int(v) for k, v in prediction_counts.items()}
+        prediction_counts = {int(k): f"{round(int(v)/len(df)*100,2)}%" for k, v in prediction_counts.items()}
+
+        logging.info(f"Prediction resultfor {product_name}: {prediction_counts}")
+        return jsonify({product_name:prediction_counts}), 200
+
+    except KeyError as e:
+        logging.error(f"KeyError: {e}", exc_info=True)
+        return jsonify({"error": f"KeyError: {str(e)}"}), 400
+
+    except Exception as e:
+        logging.error("Error during prediction", exc_info=True)
+        return jsonify({"error": str(e)}), 500
