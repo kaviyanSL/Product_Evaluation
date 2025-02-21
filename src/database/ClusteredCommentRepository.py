@@ -33,3 +33,11 @@ class ClusteredCommentRepository:
             result = conn.execute(stmt)
             return result.fetchone()
             
+
+    def get_all_clustered_comments_200(self):
+        clustered_comment_table = Table('clustered_comment', self.metadata, autoload_with=self.engine)
+        with self.engine.connect() as conn:
+            stmt = sa.select(clustered_comment_table).limit(2000)
+            result = conn.execute(stmt)
+            return result.fetchall()
+
