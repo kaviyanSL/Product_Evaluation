@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from src.services.TagFinderService import TagFinderService
-from src.services.TextPreProcessorService import TextPreProcessorService
 from src.services.NLPBasedModelsService import NLPBasedModelsService
 from src.services.ClusteringService import ClusteringService
 from src.database.ClusteredCommentRepository import ClusteredCommentRepository
@@ -11,13 +10,8 @@ from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPrep
 from src.database.ClassificationModelRepository import ClassificationModelRepository
 from src.services.ClassificationModelService import ClassificationModelService
 from src.services.ClassifierPredictorService import ClassifierPredictorService
-import scipy.sparse
-import torch
-import re
 import logging
 import pandas as pd
-import ast
-import json
 import numpy as np
 import os
 
@@ -276,4 +270,20 @@ def agg_comment_per_product(product_name):
 
     except Exception as e:
         logging.error("Error during prediction", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+    
+
+@blueprint.route("/api/v1/prompt_generating_sample/", methods=['POST'])
+def prompt_generating_sample():
+    try:
+        data = request.get_json()
+        message = data.get('message')
+        return jsonify(f"message is received: {message}"), 200
+
+    except KeyError as e:
+        logging.error(f"KeyError: {e}", exc_info=True)
+        return jsonify({"error": f"KeyError: {str(e)}"}), 400
+
+    except Exception as e:
+        logging.error("Error during reading message", exc_info=True)
         return jsonify({"error": str(e)}), 500
