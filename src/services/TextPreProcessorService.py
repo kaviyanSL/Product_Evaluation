@@ -9,8 +9,8 @@ nltk.data.path.append(nltk_data_path)
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class TextPreProcessorService():
-    def __init__(self, comment_list):
-        self.comment_list = comment_list
+    def __init__(self):
+        pass
 
     def lower_case(self, comment):
         return comment.lower()

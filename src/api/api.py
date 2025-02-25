@@ -10,6 +10,8 @@ from src.multiprocess_service.MultiprocessPreprocessText import MultiprocessPrep
 from src.database.ClassificationModelRepository import ClassificationModelRepository
 from src.services.ClassificationModelService import ClassificationModelService
 from src.services.ClassifierPredictorService import ClassifierPredictorService
+from src.services.KeywordExtractionService import KeywordExtractionService
+from src.database.UserPromptrepository import UserPromptrepository
 import logging
 import pandas as pd
 import numpy as np
@@ -264,9 +266,6 @@ def agg_comment_per_product(product_name):
         logging.info(f"Prediction resultfor {product_name}: {prediction_counts}")
         return jsonify({product_name:prediction_counts}), 200
 
-    except KeyError as e:
-        logging.error(f"KeyError: {e}", exc_info=True)
-        return jsonify({"error": f"KeyError: {str(e)}"}), 400
 
     except Exception as e:
         logging.error("Error during prediction", exc_info=True)
@@ -276,14 +275,17 @@ def agg_comment_per_product(product_name):
 @blueprint.route("/api/v1/prompt_generating_sample/", methods=['POST'])
 def prompt_generating_sample():
     try:
+
         data = request.get_json()
         message = data.get('message')
         username = data.get('username')
-        return jsonify(f"message is received: {message} from {username}"), 200
+        keyword_extracer = KeywordExtractionService(message)
+        keywords = keyword_extracer.extracting_keywords()
+        db = UserPromptrepository()
+        db.saving_keywords(message,username,keywords)
 
-    except KeyError as e:
-        logging.error(f"KeyError: {e}", exc_info=True)
-        return jsonify({"error": f"KeyError: {str(e)}"}), 400
+        return jsonify(f"the keywords are: {keywords}"), 200
+
 
     except Exception as e:
         logging.error("Error during reading message", exc_info=True)
