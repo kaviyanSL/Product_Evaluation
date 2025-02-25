@@ -278,7 +278,8 @@ def prompt_generating_sample():
     try:
         data = request.get_json()
         message = data.get('message')
-        return jsonify(f"message is received: {message}"), 200
+        username = data.get('username')
+        return jsonify(f"message is received: {message} from {username}"), 200
 
     except KeyError as e:
         logging.error(f"KeyError: {e}", exc_info=True)
