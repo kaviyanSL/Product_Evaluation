@@ -5,6 +5,8 @@ from tqdm import tqdm
 import time
 import numpy as np
 import torch
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class NLPBasedModelsService:
     def __init__(self, reviews, website):
