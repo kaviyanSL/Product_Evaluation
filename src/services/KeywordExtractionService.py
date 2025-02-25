@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 
 
-class KeywordExtraction:
+class KeywordExtractionService:
     def __init__(self,comment):
         self.comment = comment
 
@@ -13,7 +13,8 @@ class KeywordExtraction:
         preprocessor = TextPreProcessorService()
         processed_comment = preprocessor.preprocess(self.comment)
         logging.debug("preprocessed is done")
-        keywords = KeyBERT.extract_keywords(processed_comment)
+        key_model = KeyBERT()
+        keywords = key_model.extract_keywords(processed_comment)
         logging.debug("keyword is extracted")
         return keywords
 
