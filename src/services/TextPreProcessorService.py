@@ -16,7 +16,7 @@ class TextPreProcessorService():
         return comment.lower()
 
     def remove_punctuation(self, comment):
-        return re.sub(r'[^a-zA-Z\s]', '', comment)
+        return re.sub(r'[^a-zA-Z0-9\s]', '', comment)
 
     def remove_stopwords(self, comment):
         stop_words = set(stopwords.words('english'))
