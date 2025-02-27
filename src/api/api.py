@@ -280,12 +280,13 @@ def prompt_generating_sample():
         data = request.get_json()
         message = data.get('message')
         username = data.get('username')
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         keyword_extracer = KeywordExtractionService(message)
         keywords = keyword_extracer.extracting_keywords()
         prompt_generator = OptimizedPromptGeneratingService(keywords)
         generated_prompt = prompt_generator.generate_text()
         db = UserPromptrepository()
-        db.saving_keywords(message,username,keywords,generated_prompt)
+        db.saving_keywords(message,username,keywords,generated_prompt,ip_address)
 
         return jsonify({"keywords": keywords, "prompt":generated_prompt}), 200
 
