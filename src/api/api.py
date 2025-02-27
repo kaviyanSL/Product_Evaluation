@@ -283,7 +283,7 @@ def prompt_generating_sample():
         keyword_extracer = KeywordExtractionService(message)
         keywords = keyword_extracer.extracting_keywords()
         prompt_generator = OptimizedPromptGeneratingService(keywords)
-        generated_prompt = prompt_generator.prompt_generator_huggingface()
+        generated_prompt = prompt_generator.generate_text()
         db = UserPromptrepository()
         db.saving_keywords(message,username,keywords,generated_prompt)
 
