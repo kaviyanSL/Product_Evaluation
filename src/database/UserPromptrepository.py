@@ -12,7 +12,7 @@ class UserPromptrepository:
         self.engine = self.db_connection.get_engine()
         self.metadata = MetaData()
     
-    def saving_keywords(self,comment,user,keywords):
+    def saving_keywords(self,comment,user,keywords,generated_prompt):
         usaer_prompt = Table('usaer_prompt', self.metadata, autoload_with=self.engine)
 
         with self.engine.connect() as conn:
@@ -20,9 +20,10 @@ class UserPromptrepository:
                 stmt = sa.insert(usaer_prompt).values(
                     prompt_text=comment,
                     prompt_keyword=keywords,
-                    user_name=user
+                    user_name=user,
+                    optimized_generated_prompt = generated_prompt
                     )
                 conn.execute(stmt)
-                logging.debug("keywords are saved successfully!")
+                logging.debug("prompt are saved successfully!")
 
     

@@ -12,6 +12,7 @@ from src.services.ClassificationModelService import ClassificationModelService
 from src.services.ClassifierPredictorService import ClassifierPredictorService
 from src.services.KeywordExtractionService import KeywordExtractionService
 from src.database.UserPromptrepository import UserPromptrepository
+from src.services.OptimizedPromptGeneratingService import OptimizedPromptGeneratingService
 import logging
 import pandas as pd
 import numpy as np
@@ -281,10 +282,12 @@ def prompt_generating_sample():
         username = data.get('username')
         keyword_extracer = KeywordExtractionService(message)
         keywords = keyword_extracer.extracting_keywords()
+        prompt_generator = OptimizedPromptGeneratingService(keywords)
+        generated_prompt = prompt_generator.prompt_generator_huggingface()
         db = UserPromptrepository()
-        db.saving_keywords(message,username,keywords)
+        db.saving_keywords(message,username,keywords,generated_prompt)
 
-        return jsonify(f"the keywords are: {keywords}"), 200
+        return jsonify({"keywords": keywords, "prompt":generated_prompt}), 200
 
 
     except Exception as e:
