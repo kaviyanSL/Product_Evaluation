@@ -14,8 +14,9 @@ class KeywordExtractionService:
         processed_comment = preprocessor.preprocess(self.comment)
         logging.debug("preprocessed is done")
         key_model = KeyBERT()
-        keywords = key_model.extract_keywords(processed_comment, keyphrase_ngram_range=(1,3),
+        keywords = key_model.extract_keywords(processed_comment, keyphrase_ngram_range=(1,4),
                                               use_maxsum=True, nr_candidates=20, top_n=10)
+        keywords = [keyword[0] for keyword in keywords]
         logging.debug("keyword is extracted")
         return keywords
 
