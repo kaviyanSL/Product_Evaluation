@@ -5,7 +5,7 @@ import openai
 
 
 class OptimizedPromptGeneratingService:
-    def __init__(self, keywords, use_deepseek=True, use_openai=False, use_huggingface=False):
+    def __init__(self, keywords, use_deepseek=False, use_openai=False, use_huggingface=True):
         """
         Initialize the prompt generation service with DeepSeek, OpenAI, or Hugging Face options.
 
